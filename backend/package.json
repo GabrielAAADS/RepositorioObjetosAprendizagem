@@ -9,7 +9,7 @@
     "start": "node src/index.js",
     "lint": "slint -c .eslintrc.json \"src/**/*.js\"",
     "format": "prettier --write .",
-    "db:test": "node src/scripts/testConnection.js",
+    "db:test": "node src/scripts/testConnection.js"
   },
   "keywords": [],
   "author": "",
