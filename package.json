@@ -1,0 +1,22 @@
+{
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "husky": "^9.1.7"
+  },
+  "lint-staged": {
+    "frontend/src/**/*.{js,jsx,css}": [
+      "npm --prefix frontend run lint",
+      "npm --prefix frontend run format",
+      "git add"
+    ],
+    "backend/src/**/*.js": [
+      "npm --prefix backend run lint",
+      "npm --prefix backend run format",
+      "git add"
+    ]
+  },
+    "scripts": {
+      "prepare": "husky"
+  }
+}

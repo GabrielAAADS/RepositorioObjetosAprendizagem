@@ -1,0 +1,24 @@
+name: CI
+on:
+  push:
+    branches: [ main, feature/RVA-01 ]
+  pull_request:
+    branches: [ main, feature/RVA-01 ]
+jobs:
+  build-and-lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pkg: [frontend, backend]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with: { node-version-file: '.nvmrc' }
+      - name: Install & Lint
+        working-directory: ${{ matrix.pkg }}
+        run: |
+          npm ci
+          npm run lint
+          npm run format
+          # npm test (quando houver)

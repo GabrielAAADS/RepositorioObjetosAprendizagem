@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: rova
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+    volumes: ['pgdata:/var/lib/postgresql/data']
+  mongo:
+    image: mongo:6
+    volumes: ['mongodata:/data/db']
+volumes:
+  pgdata: {}
+  mongodata: {}
