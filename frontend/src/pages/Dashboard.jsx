@@ -10,6 +10,12 @@ export default function Dashboard() {
 
   return (
     <div className="p-8">
+      <button
+        onClick={() => navigate('/objects/new')}
+        className="mb-4 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded"
+      >
+        + Novo Objeto
+      </button>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl">Bem-vindo ao Dashboard!</h1>
         <button
