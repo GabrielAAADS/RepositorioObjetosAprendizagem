@@ -1,7 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const { createObject } = require('../controllers/objectController');
+const { createObject, listObjects } = require('../controllers/objectController');
 
 const router = express.Router();
 
@@ -24,6 +24,8 @@ const fileFilter = (req, file, cb) => {
 };
 
 const upload = multer({ storage, fileFilter });
+
+router.get('/objetos', listObjects);
 
 router.post('/objetos', upload.single('file'), createObject);
 

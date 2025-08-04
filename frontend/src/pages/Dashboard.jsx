@@ -16,6 +16,12 @@ export default function Dashboard() {
       >
         + Novo Objeto
       </button>
+      <button
+        onClick={() => navigate('/search')}
+        className="mb-4 bg-indigo-500 hover:bg-indigo-600 text-white py-2 px-4 rounded"
+      >
+        🔍 Buscar Objetos
+      </button>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl">Bem-vindo ao Dashboard!</h1>
         <button
