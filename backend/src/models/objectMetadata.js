@@ -51,5 +51,14 @@ ObjectMetadataSchema.index({ 'lom.rights.copyrightAndOtherRestrictions': 1 });
 ObjectMetadataSchema.index({ 'lom.classification.purpose': 1 });
 ObjectMetadataSchema.index({ 'lom.classification.keyword': 1 });
 
+ObjectMetadataSchema.index({ objectId: 1 }, { unique: true });
+ObjectMetadataSchema.index({ 'metadata.general.language': 1 });
+ObjectMetadataSchema.index({ 'metadata.general.keyword': 1 });
+ObjectMetadataSchema.index({ 'metadata.educational.learningResourceType': 1 });
+ObjectMetadataSchema.index({ 'metadata.educational.interactivityType': 1 });
+ObjectMetadataSchema.index({ 'metadata.educational.context': 1 });
+ObjectMetadataSchema.index({ 'metadata.educational.difficulty': 1 });
+ObjectMetadataSchema.index({ 'metadata.rights.cost': 1 });
+
 module.exports = mongoose.model('ObjectMetadata', ObjectMetadataSchema);
 
