@@ -1,83 +1,106 @@
-import React, { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import api from '../services/api'
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import api from '../services/api';
+import styles from '../components/Register.module.css';
 
 export default function Register() {
-  const [form, setForm] = useState({ name: '', email: '', password: '' })
-  const [error, setError] = useState('')
-  const navigate = useNavigate()
+  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   function handleChange(e) {
-    setForm({ ...form, [e.target.name]: e.target.value })
+    setForm({ ...form, [e.target.name]: e.target.value });
   }
 
   async function handleSubmit(e) {
-    e.preventDefault()
+    e.preventDefault();
     try {
-      await api.post('/auth/register', form)
-      navigate('/login')
+      await api.post('/auth/register', form);
+      navigate('/login');
     } catch (err) {
       const msg = err.response?.data?.errors
         ? err.response.data.errors[0].msg
-        : err.response?.data?.error || 'Falha no registro'
-      setError(msg)
+        : err.response?.data?.error || 'E-mail informado já está em uso.';
+      setError(msg);
     }
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white p-6 rounded-lg shadow-md w-full max-w-sm"
-      >
-        <h2 className="text-2xl font-semibold mb-4">Registrar</h2>
+    <div className={styles.container}>
+      <div className={styles.logoSection}>
+        <img src="/logo.svg" alt="Logo" className={styles.logo} />
+      </div>
 
-        {error && <div className="text-red-500 mb-4">{error}</div>}
+      <div className={styles.card}>
+        <div className={styles.header}>
+          <h2 className={styles.title}>Crie uma conta</h2>
+          <p className={styles.subtitle}>
+            Digite seus dados para criar uma conta.
+          </p>
+        </div>
 
-        <input
-          name="name"
-          type="text"
-          placeholder="Nome"
-          value={form.name}
-          onChange={handleChange}
-          required
-          className="w-full p-2 mb-4 border rounded"
-        />
+        <form onSubmit={handleSubmit} className={styles.formContainer}>
+          <div className={styles.inputGroup}>
+            <label className={styles.label} for="name">
+              Nome
+            </label>
+            <input
+              name="name"
+              id="name"
+              type="text"
+              value={form.name}
+              onChange={handleChange}
+              className={styles.input}
+              required
+            />
+          </div>
 
-        <input
-          name="email"
-          type="email"
-          placeholder="Email"
-          value={form.email}
-          onChange={handleChange}
-          required
-          className="w-full p-2 mb-4 border rounded"
-        />
+          <div className={styles.inputGroup}>
+            <label className={styles.label} for="email">
+              Email
+            </label>
+            <input
+              name="email"
+              id="email"
+              type="email"
+              value={form.email}
+              onChange={handleChange}
+              className={styles.input}
+              required
+            />
+          </div>
 
-        <input
-          name="password"
-          type="password"
-          placeholder="Senha (mínimo 6 caracteres)"
-          value={form.password}
-          onChange={handleChange}
-          required
-          className="w-full p-2 mb-4 border rounded"
-        />
+          <div className={styles.inputGroup}>
+            <label className={styles.label} for="password">
+              Senha
+            </label>
+            <input
+              name="password"
+              id="password"
+              type="password"
+              value={form.password}
+              onChange={handleChange}
+              className={styles.input}
+              required
+            />
+          </div>
 
-        <button
-          type="submit"
-          className="w-full bg-green-500 hover:bg-green-600 text-white p-2 rounded"
-        >
-          Cadastrar
-        </button>
+          {error && <div className={styles.error}>{error}</div>}
 
-        <p className="mt-4 text-center">
-          Já tem conta?{' '}
-          <Link to="/login" className="text-blue-500 hover:underline">
-            Faça login
-          </Link>
-        </p>
-      </form>
+          <button type="submit" className={styles.button}>
+            Criar conta
+          </button>
+        </form>
+
+        <div className={styles.footer}>
+          <p className={styles.footerText}>
+            Já possui uma conta?{' '}
+            <Link to="/login" className={styles.link}>
+              Entrar
+            </Link>
+          </p>
+        </div>
+      </div>
     </div>
-  )
+  );
 }
