@@ -1,0 +1,225 @@
+.footer {
+  background-color: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  margin-top: auto;
+}
+
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.content {
+  display: flex;
+  justify-content: space-between;
+  gap: 3rem;
+  padding: 3rem 0 2rem;
+}
+
+.brand {
+  flex: 1;
+  max-width: 400px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.logoIcon {
+  font-size: 2rem;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brandName {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #1f2937;
+  letter-spacing: -0.025em;
+}
+
+.brandSubtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-top: 0.125rem;
+}
+
+.brandDescription {
+  color: #6b7280;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.linksSection {
+  display: flex;
+  gap: 3rem;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.linkColumn {
+  min-width: 140px;
+}
+
+.linkTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 1rem;
+  margin-top: 0;
+}
+
+.linkList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.linkList li {
+  margin-bottom: 0.5rem;
+}
+
+.link {
+  color: #6b7280;
+  text-decoration: none;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  transition: color 0.2s ease;
+}
+
+.link:hover {
+  color: #1f2937;
+}
+
+.bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 0;
+  border-top: 1px solid #f3f4f6;
+  margin-top: 1.5rem;
+}
+
+.copyright {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.developedBy {
+  font-size: 0.875rem;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Responsividade para tablets */
+@media (max-width: 768px) {
+  .content {
+    flex-direction: column;
+    gap: 2rem;
+    padding: 2rem 0 1.5rem;
+  }
+
+  .brand {
+    max-width: none;
+    text-align: center;
+  }
+
+  .linksSection {
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .linkColumn {
+    text-align: center;
+    min-width: 120px;
+  }
+
+  .bottom {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+}
+
+/* Responsividade para mobile */
+@media (max-width: 480px) {
+  .container {
+    padding: 0 0.75rem;
+  }
+
+  .content {
+    gap: 1.5rem;
+    padding: 1.5rem 0 1rem;
+  }
+
+  .logo {
+    justify-content: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .logoIcon {
+    font-size: 1.75rem;
+    padding: 0.375rem;
+  }
+
+  .brandName {
+    font-size: 1.25rem;
+  }
+
+  .linksSection {
+    gap: 1.5rem;
+  }
+
+  .linkColumn {
+    min-width: 100px;
+  }
+
+  .linkTitle {
+    font-size: 0.8125rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .link {
+    font-size: 0.8125rem;
+  }
+
+  .linkList li {
+    margin-bottom: 0.375rem;
+  }
+
+  .bottom {
+    padding: 1rem 0;
+    margin-top: 1rem;
+  }
+
+  .copyright,
+  .developedBy {
+    font-size: 0.8125rem;
+  }
+}
+
+/* Responsividade para telas muito pequenas */
+@media (max-width: 360px) {
+  .linksSection {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .linkColumn {
+    width: 100%;
+    max-width: 200px;
+  }
+}
