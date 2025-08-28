@@ -1,51 +1,119 @@
-import { Link, NavLink, useNavigate } from 'react-router-dom';
-
-const linkCls = ({ isActive }) =>
-  `text-sm ${isActive ? 'text-indigo-600 font-medium' : 'text-gray-700 hover:text-black'}`;
+import { useState } from 'react';
+import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Menu, X } from 'lucide-react';
+import styles from './SiteHeader.module.css';
 
 export default function SiteHeader() {
+  const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const token = localStorage.getItem('token');
+  const location = useLocation();
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    navigate('/login', { replace: true });
+  const scrollToSection = (id) => {
+    if (location.pathname !== '/') {
+      navigate('/', { replace: false });
+      requestAnimationFrame(() => {
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      });
+    } else {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+    setOpen(false);
   };
 
+  const linkCls = ({ isActive }) =>
+    `${styles.link} ${isActive ? styles.active : ''}`;
+
   return (
-    <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b">
-      <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 font-bold text-xl">
-          <span className="w-8 h-8 rounded-full bg-indigo-600 text-white grid place-items-center">R</span>
-          ROVA
+    <header className={styles.header}>
+      <div className={styles.container}>
+        {/* Botão hamburguer só mobile */}
+        <button onClick={() => setOpen(!open)} className={styles.menuBtn}>
+          {open ? <X size={24} /> : <Menu size={24} />}
+        </button>
+
+        {/* Logo */}
+        <Link to="/" className={styles.logo}>
+          <img src="logoShield.svg" alt="Logo" className={styles.logoImg} />
+          <span className={styles.logoText}>Logo</span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-6">
-          <NavLink to="/about" className={linkCls}>Sobre</NavLink>
-          <NavLink to="/help" className={linkCls}>Ajuda & FAQ</NavLink>
-          <NavLink to="/contact" className={linkCls}>Contato</NavLink>
-        </nav>
+        {/* CTA sempre visível */}
+        <Link to="/search" className={styles.cta}>
+          Acessar Objetos
+        </Link>
 
-        <div className="flex items-center gap-3">
-          <Link
-            to="/objects/new"
-            className="hidden sm:inline-flex bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded"
+        {/* NavLinks desktop */}
+        <nav className={styles.navDesktop}>
+          <NavLink
+            className={linkCls({})}
+            onClick={() => scrollToSection('hero')}
           >
-            + Novo objeto
-          </Link>
-          <Link
-            to="/search"
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded"
+            Home
+          </NavLink>
+          <NavLink
+            className={linkCls({})}
+            onClick={() => scrollToSection('popular')}
           >
-            Buscar
-          </Link>
-          {token ? (
-            <button onClick={logout} className="ml-2 text-sm text-gray-600 hover:text-black">Sair</button>
-          ) : (
-            <Link to="/login" className="ml-2 text-sm text-gray-600 hover:text-black">Entrar</Link>
-          )}
-        </div>
+            Objetos Populares
+          </NavLink>
+          <NavLink
+            className={linkCls({})}
+            onClick={() => scrollToSection('use')}
+          >
+            Por Que Utilizar?
+          </NavLink>
+          <NavLink
+            className={linkCls({})}
+            onClick={() => scrollToSection('highlight')}
+          >
+            Objetos em Destaque
+          </NavLink>
+          <NavLink
+            className={linkCls({})}
+            onClick={() => scrollToSection('howWorks')}
+          >
+            Como Funciona
+          </NavLink>
+        </nav>
       </div>
+
+      {/* Menu mobile */}
+      {open && (
+        <div className={styles.menuMobile}>
+          <button
+            className={styles.link}
+            onClick={() => scrollToSection('hero')}
+          >
+            Home
+          </button>
+          <button
+            className={styles.link}
+            onClick={() => scrollToSection('popular')}
+          >
+            Objetos Populares
+          </button>
+          <button
+            className={styles.link}
+            onClick={() => scrollToSection('use')}
+          >
+            Por Que Utilizar?
+          </button>
+          <button
+            className={styles.link}
+            onClick={() => scrollToSection('highlight')}
+          >
+            Objetos em Destaque
+          </button>
+          <button
+            className={styles.link}
+            onClick={() => scrollToSection('howWorks')}
+          >
+            Como Funciona
+          </button>
+        </div>
+      )}
     </header>
   );
 }

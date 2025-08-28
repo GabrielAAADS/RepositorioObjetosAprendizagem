@@ -17,7 +17,7 @@ export default function Login() {
     try {
       const res = await api.post('/auth/login', form);
       localStorage.setItem('token', res.data.token);
-      navigate('/dashboard', { replace: true });
+      navigate('/', { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || 'E-mail ou senha incorretos. Tente novamente');
     }
