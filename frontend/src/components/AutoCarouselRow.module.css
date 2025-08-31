@@ -1,0 +1,16 @@
+.wrap {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  padding: 4px 0;
+}
+
+.track {
+  display: inline-flex;
+  align-items: stretch;
+  will-change: transform;
+}
+
+.item {
+  flex: 0 0 auto;
+}

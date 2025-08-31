@@ -1,87 +1,92 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
-import { ChevronRight } from 'lucide-react';
+import ObjectCard from '../components/ObjectCards';
+import BackTopButton from '../components/BackTopButton';
+import styles from '../components/Home.module.css';
+import AutoCarouselRow from '../components/AutoCarouselRow';
 
-import styles from "../components/Home.module.css";
+import blocksLeft from '../assets/blocksLeft.svg';
+import blocksRight from '../assets/blocksRight.svg';
+import tabletBoy from '../assets/tabletBoy.png';
 
 export default function Home() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-
-  const [_latest, setLatest] = useState([]);
-  const [_loading, setLoading] = useState(true);
-  const [_err, setErr] = useState('');
-
-  const [query, setQuery] = useState(searchParams.get('q') || '');
+  const [sp] = useSearchParams();
+  const [query, setQuery] = useState(sp.get('q') || '');
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 767);
 
+  const [popular, setPopular] = useState([]); 
+  const [latest, setLatest] = useState([]);  
+  const [chips, setChips] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 767);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    const onR = () => setIsMobile(window.innerWidth <= 767);
+    window.addEventListener('resize', onR);
+    return () => window.removeEventListener('resize', onR);
   }, []);
 
-  const LIMIT = 12;
-
-  // --- busca objetos ---
   useEffect(() => {
-    let mounted = true;
+    let alive = true;
     (async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-        setErr('');
+        const [oRes, fRes] = await Promise.all([
+          api.get('/objetos', { params: { limit: 48, offset: 0 } }),
+          api.get('/objetos/facets'),
+        ]);
 
-        const qTitle = searchParams.get('q') || undefined;
+        const objs = Array.isArray(oRes.data?.objects) ? oRes.data.objects : [];
 
-        const { data } = await api.get('/objetos', {
-          params: {
-            title: qTitle,
-            limit: LIMIT,
-            offset: 0,
-          },
-        });
+        const pop = [...objs]
+          .sort((a, b) => (b.ratingAvg || 0) - (a.ratingAvg || 0))
+          .slice(0, 12);
 
-        const arr = Array.isArray(data?.objects) ? data.objects : [];
-        if (mounted) setLatest(arr.filter(Boolean));
+        const lat = [...objs]
+          .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+          .slice(0, 12);
+
+        const facets = fRes.data?.facets || {};
+        const keywords = (facets.keywords || [])
+          .sort((a, b) => (b.count || 0) - (a.count || 0))
+          .slice(0, 6)
+          .map((x) => x.value);
+        const contexts = (facets.context || [])
+          .sort((a, b) => (b.count || 0) - (a.count || 0))
+          .slice(0, 4)
+          .map((x) => x.value);
+
+        if (!alive) return;
+        setPopular(pop);
+        setLatest(lat);
+        setChips([...keywords, ...contexts].slice(0, 10));
       } catch (e) {
         console.error(e);
-        if (mounted) setErr('Erro ao carregar objetos.');
       } finally {
-        if (mounted) setLoading(false);
+        if (alive) setLoading(false);
       }
     })();
+    return () => { alive = false; };
+  }, []);
 
-    return () => {
-      mounted = false;
-    };
-  }, [searchParams]);
-
-  // --- handler da busca ---
   const handleSearch = (e) => {
     e.preventDefault();
-    const params = new URLSearchParams();
-    if (query.trim()) params.set('q', query.trim());
-    navigate(`?${params.toString()}`);
+    const term = query.trim();
+    navigate(term ? `/search?q=${encodeURIComponent(term)}` : '/search');
   };
 
   return (
     <div id="hero">
+      {/* HERO */}
       <section className={styles.hero}>
         <div className={styles.container}>
-          <span className={styles.badge}>
-            Biblioteca com dezenas de objetos educativos!
-          </span>
-
+          <span className={styles.badge}>Biblioteca com dezenas de objetos educativos!</span>
           <h1 className={styles.title}>
-            Aprenda Brincando com{' '}
-            <span className={styles.highlight}>Objetos</span> Educacionais
-            Interativos!
+            Aprenda Brincando com <span className={styles.highlight}>Objetos</span> Educacionais Interativos!
           </h1>
-
           <p className={styles.subtitle}>
-            Explore uma coleção de objetos interativos para reforçar o
-            aprendizado de forma divertida.
+            Explore uma coleção de objetos interativos para reforçar o aprendizado de forma divertida.
           </p>
 
           <form onSubmit={handleSearch} className={styles.search}>
@@ -92,193 +97,55 @@ export default function Home() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
-            <button type="submit" className={styles.button}>
-              Buscar
-            </button>
+            <button type="submit" className={styles.button}>Buscar</button>
           </form>
         </div>
-
         <div className={styles.leftImage}>
-          <img src="src\assets\blocksLeft.svg" />
+          <img src={blocksLeft} alt="" />
         </div>
         <div className={styles.rightImage}>
-          <img src="src\assets\blocksRight.svg" />
+          <img src={blocksRight} alt="" />
         </div>
       </section>
 
-      <section
-        id="popular"
-        className={`${styles.popularSection} ${styles.content}`}
-      >
+      {/* POPULARES */}
+      <section id="popular" className={`${styles.popularSection} ${styles.content}`}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Objetos Populares</h2>
-          <p className={styles.sectionSubtitle}>
-            Encontre os objetos mais baixados e recomendados por educadores
-          </p>
+          <p className={styles.sectionSubtitle}>Encontre os objetos mais bem avaliados</p>
         </div>
 
         <nav className={styles.categoryNav}>
           <div>
-            <button className={styles.categoryBtn}>Matemática</button>
-            <button className={styles.categoryBtn}>Língua Portuguesa</button>
-            <button className={styles.categoryBtn}>Ciências</button>
-            <button className={styles.categoryBtn}>Geografia</button>
-            <button className={styles.categoryBtn}>História</button>
-            <button className={styles.categoryBtn}>Inglês</button>
+            {chips.map((c, i) => (
+              <button
+                key={`${c}-${i}`}
+                className={styles.categoryBtn}
+                onClick={() => navigate(`/search?q=${encodeURIComponent(c)}`)}
+              >
+                {c}
+              </button>
+            ))}
           </div>
-          {!isMobile && (
-            <Link to="/search" className={styles.cta}>
-              Ver Todos os Objetos
-            </Link>
-          )}
+          {!isMobile && <Link to="/search" className={styles.seeAllBtn}>Ver todos os objetos</Link>}
         </nav>
 
-        <div className={styles.objectsGrid}>
-          <div className={styles.objectCard}>
-            <div className={styles.cardImage}>
-              <div className={styles.cardImageContent}>
-                <img src="image.jpg" alt="" />
-              </div>
-            </div>
-            <div className={styles.cardContent}>
-              <div className={styles.cardBadge}>JOGO</div>
-              <h4>Aprendendo Usar os Porquês de Forma Fácil e Divertida</h4>
-              <p>
-                Teste seus conhecimentos sobre as regras do Brasil e do mundo.
-              </p>
-              <button className={styles.detailsBtn}>
-                Ver Detalhes <ChevronRight size={24} />
-              </button>
-            </div>
+        {loading ? (
+          <div className={styles.loading}>Carregando…</div>
+        ) : (
+          <div className={styles.objectsGrid}>
+            <AutoCarouselRow
+              items={popular}       
+              speed={28}
+              gap={20}
+              dir="ltr"
+              minItemWidth={320}
+              renderItem={(obj) => <ObjectCard key={obj.id} object={obj} />}
+            />
           </div>
-
-          <div className={styles.objectCard}>
-            <div className={styles.cardImage}>
-              <div className={styles.cardImageContent}>
-                <img src="image2.jpg" alt="" />
-              </div>
-            </div>
-            <div className={styles.cardContent}>
-              <div className={styles.cardBadge}>JOGO</div>
-              <h4>Bingo Divertido - Aprenda Brincando!</h4>
-              <p>
-                Testando conhecimentos de forma interativa com este jogo de
-                bingo.
-              </p>
-              <button className={styles.detailsBtn}>
-                Ver Detalhes <ChevronRight size={24} />
-              </button>
-            </div>
-          </div>
-
-          <div className={styles.objectCard}>
-            <div className={styles.cardImage}>
-              <div className={styles.cardImageContent}>
-                <img src="image3.jpg" alt="" />
-              </div>
-            </div>
-            <div className={styles.cardContent}>
-              <div className={styles.cardBadge}>JOGO</div>
-              <h4>Explorando os Biomas do Nosso País Brasil</h4>
-              <p>Testando conhecimentos sobre os biomas em nosso território.</p>
-              <button className={styles.detailsBtn}>
-                Ver Detalhes <ChevronRight size={24} />
-              </button>
-            </div>
-          </div>
-
-          <div className={styles.objectCard}>
-            <div className={styles.cardImage}>
-              <div className={styles.cardImageContent}>
-                <img src="image4.jpg" alt="" />
-              </div>
-            </div>
-            <div className={styles.cardContent}>
-              <div className={styles.cardBadge}>JOGO</div>
-              <h4>Aprenda a Comparar os Números de Forma Divertida</h4>
-              <p>Exercitando seus conhecimentos em comparação de números.</p>
-              <button className={styles.detailsBtn}>
-                Ver Detalhes <ChevronRight size={24} />
-              </button>
-            </div>
-          </div>
-
-          <div className={styles.objectCard}>
-            <div className={styles.cardImage}>
-              <div className={styles.cardImageContent}>
-                <img src="image5.jpg" alt="" />
-              </div>
-            </div>
-            <div className={styles.cardContent}>
-              <div className={styles.cardBadge}>JOGO</div>
-              <h4>Dominando o Português - Aprenda de Forma Divertida</h4>
-              <p>Aprimere sua gramática e vocabulário com desafios musicais.</p>
-              <button className={styles.detailsBtn}>
-                Ver Detalhes <ChevronRight size={24} />
-              </button>
-            </div>
-          </div>
-
-          <div className={styles.objectCard}>
-            <div className={styles.cardImage}>
-              <div className={styles.cardImageContent}>
-                <img src="image6.jpg" alt="" />
-              </div>
-            </div>
-            <div className={styles.cardContent}>
-              <div className={styles.cardBadge}>JOGO</div>
-              <h4>CapitalGeo - Jogo das Capitais do Brasil</h4>
-              <p>
-                Teste seus conhecimentos sobre as capitais do Brasil e do mundo.
-              </p>
-              <button className={styles.detailsBtn}>
-                Ver Detalhes <ChevronRight size={24} />
-              </button>
-            </div>
-          </div>
-
-          <div className={styles.objectCard}>
-            <div className={styles.cardImage}>
-              <div className={styles.cardImageContent}>
-                <img src="image7.jpg" alt="" />
-              </div>
-            </div>
-            <div className={styles.cardContent}>
-              <div className={styles.cardBadge}>JOGO</div>
-              <h4>
-                Inglês Descomplicado - Aprende de Forma Rápida e Divertida
-              </h4>
-              <p>Melhore seu inglês com jogos interativos e divertidos.</p>
-              <button className={styles.detailsBtn}>
-                Ver Detalhes <ChevronRight size={24} />
-              </button>
-            </div>
-          </div>
-
-          <div className={styles.objectCard}>
-            <div className={styles.cardImage}>
-              <div className={styles.cardImageContent}>
-                <img src="image8.jpg" alt="" />
-              </div>
-            </div>
-            <div className={styles.cardContent}>
-              <div className={styles.cardBadge}>JOGO</div>
-              <h4>GCompris - Jogo Educacional para fundamental I</h4>
-              <p>
-                Atividades que ensinam matemática, leitura e ciências de forma
-                divertida.
-              </p>
-              <button className={styles.detailsBtn}>
-                Ver Detalhes <ChevronRight size={24} />
-              </button>
-            </div>
-          </div>
-        </div>
-        {isMobile && (
-          <Link to="/search" className={`${styles.cta} ${styles.ctaMobile}`}>
-            Ver Todos os Objetos
-          </Link>
         )}
+
+        {isMobile && <Link to="/search" className={`${styles.cta} ${styles.ctaMobile}`}>Ver todos os objetos</Link>}
       </section>
 
       <section id="use" className="content">
@@ -289,32 +156,20 @@ export default function Home() {
                 Por Que Utilizar <span>Objetos</span> Educativos no Ensino?
               </h2>
               <p className={styles.sectionSubtitle}>
-                Explore uma coleção de objetos interativos para reforçar o
-                aprendizado de forma divertida.
+                Explore uma coleção de objetos interativos para reforçar o aprendizado de forma divertida.
               </p>
             </div>
             <ul className={styles.learnList}>
-              <li>
-                <span>1</span> Aprendizado Interativo – Torna o ensino mais
-                envolvente e dinâmico.
-              </li>
-              <li>
-                <span>2</span> Fácil de Usar – Basta abrir no PowerPoint e
-                começar a jogar!
-              </li>
-              <li>
-                <span>3</span> 100% Gratuito – Baixe e utilize sem custos.
-              </li>
-              <li>
-                <span>4</span> Para Todas as Idades – Jogos para ensino
-                fundamental e médio.
-              </li>
+              <li><span>1</span> Aprendizado Interativo – Torna o ensino mais envolvente e dinâmico.</li>
+              <li><span>2</span> Fácil de Usar – Basta abrir no PowerPoint e começar a jogar!</li>
+              <li><span>3</span> 100% Gratuito – Baixe e utilize sem custos.</li>
+              <li><span>4</span> Para Todas as Idades – Jogos para ensino fundamental e médio.</li>
             </ul>
           </div>
 
           <div className={styles.rightContent}>
             <img
-              src="src/assets/tabletBoy.png"
+              src={tabletBoy}
               alt="Menino com tablet"
               className={styles.heroImage}
             />
@@ -322,121 +177,43 @@ export default function Home() {
         </div>
       </section>
 
-      <section
-        id="highlight"
-        className={`${styles.popularSection} ${styles.content}`}
-      >
-        <div className={styles.sectionWrapper}>
-          <div className={styles.sectionHeader}>
+      <section id="highlight" className={`${styles.popularSection} ${styles.content}`}>
+        <div className={styles.sectionHeader} style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <div>
             <h2 className={styles.sectionTitle}>Objetos em Destaque</h2>
-            <p className={styles.sectionSubtitle}>
-              Encontre os objetos mais baixados e recomendados por educadores
-            </p>
+            <p className={styles.sectionSubtitle}>Os mais recentes do acervo</p>
           </div>
-          {!isMobile && (
-            <Link to="/search" className={styles.cta}>
-              Ver Todos os Objetos
-            </Link>
-          )}{' '}
+          {!isMobile && <Link to="/search" className={styles.seeAllBtn}>Ver todos os objetos</Link>}
         </div>
-        <div className={styles.objectsGrid}>
-          <div className={styles.objectCard}>
-            <div className={styles.cardImage}>
-              <div className={styles.cardImageContent}>
-                <img src="image9.jpg" alt="" />
-              </div>
-            </div>
-            <div className={styles.cardContent}>
-              <div className={styles.cardBadge}>JOGO</div>
-              <h4>As Estações do Ano - Descubra e Aprenda!</h4>
-              <p>
-                Explore as características de cada estação com um jogo
-                interativo.
-              </p>
-              <button className={styles.detailsBtn}>
-                Ver Detalhes <ChevronRight size={24} />
-              </button>
-            </div>
-          </div>
 
-          <div className={styles.objectCard}>
-            <div className={styles.cardImage}>
-              <div className={styles.cardImageContent}>
-                <img src="image10.jpg" alt="" />
-              </div>
-            </div>
-            <div className={styles.cardContent}>
-              <div className={styles.cardBadge}>JOGO</div>
-              <h4>Ensinando Matemática Com Jogo da Memória</h4>
-              <p>Testando conhecimentos em matemática com jogo da memória.</p>
-              <button className={styles.detailsBtn}>
-                Ver Detalhes <ChevronRight size={24} />
-              </button>
-            </div>
+        {loading ? (
+          <div className={styles.loading}>Carregando…</div>
+        ) : (
+          <div className={styles.objectsGrid}>
+            <AutoCarouselRow
+              items={latest}     
+              speed={24}
+              gap={20}
+              dir="rtl"
+              minItemWidth={320}
+              renderItem={(obj) => <ObjectCard key={obj.id} object={obj} />}
+            />
           </div>
-
-          <div className={styles.objectCard}>
-            <div className={styles.cardImage}>
-              <div className={styles.cardImageContent}>
-                <img src="image1.jpg" alt="" />
-              </div>
-            </div>
-            <div className={styles.cardContent}>
-              <div className={styles.cardBadge}>JOGO</div>
-              <h4>Jogo dos Sinônimos – Amplie seu Vocabulário</h4>
-              <p>
-                Encontre palavras com significados semelhantes e aprenda
-                brincando.
-              </p>
-              <button className={styles.detailsBtn}>
-                Ver Detalhes <ChevronRight size={24} />
-              </button>
-            </div>
-          </div>
-
-          <div className={styles.objectCard}>
-            <div className={styles.cardImage}>
-              <div className={styles.cardImageContent}>
-                <img src="image12.jpg" alt="" />
-              </div>
-            </div>
-            <div className={styles.cardContent}>
-              <div className={styles.cardBadge}>JOGO</div>
-              <h4>
-                Encontre palavras com significados semelhantes e aprenda
-                brincando.
-              </h4>
-              <p>
-                Descubra as partes do corpo e suas funções de forma interativa e
-                divertida.
-              </p>
-              <button className={styles.detailsBtn}>
-                Ver Detalhes <ChevronRight size={24} />
-              </button>
-            </div>
-          </div>
-        </div>
-        {isMobile && (
-          <Link to="/search" className={`${styles.cta} ${styles.ctaMobile}`}>
-            Ver Todos os Objetos
-          </Link>
         )}
+
+        {isMobile && <Link to="/search" className={`${styles.cta} ${styles.ctaMobile}`}>Ver todos os objetos</Link>}
       </section>
 
-      <section
-        id="howWorks"
-        className={`${styles.howItWorksSection} ${styles.content}`}
-      >
+      <section id="howWorks" className={`${styles.howItWorksSection} ${styles.content}`}>
         <div className={styles.howItWorksContainer}>
           <div className={styles.howItWorksLeft}>
             <h2 className={styles.howItWorksTitle}>Como Funciona?</h2>
             <p className={styles.howItWorksSubtitle}>
               Nosso processo é simples e direto para você começar a usar os
-              objetos educativos e tornar a aula muito mais interativa e
-              divertida.
+              objetos educativos e tornar a aula muito mais interativa e divertida.
             </p>
             <button className={styles.howItWorksBtn}>
-              Quero Começar! <ChevronRight size={24} color={'#fff'} />
+              Quero Começar!
             </button>
           </div>
 
@@ -446,9 +223,8 @@ export default function Home() {
               <div className={styles.stepContent}>
                 <h4>Explore os Objetos</h4>
                 <p>
-                  Escolha entre uma variedade de jogos educativos, com temas
-                  como geografia, matemática e ciências. Todos feitos para
-                  engajar os alunos.
+                  Escolha entre uma variedade de jogos educativos, com temas como geografia,
+                  matemática e ciências. Todos feitos para engajar os alunos.
                 </p>
               </div>
             </div>
@@ -458,8 +234,8 @@ export default function Home() {
               <div className={styles.stepContent}>
                 <h4>Baixe o Objeto</h4>
                 <p>
-                  Baixe o objeto de forma rápida e fácil, compatível com
-                  PowerPoint ou LibreOffice. Simples e sem complicações!
+                  Baixe o objeto de forma rápida e fácil, compatível com PowerPoint ou LibreOffice.
+                  Simples e sem complicações!
                 </p>
               </div>
             </div>
@@ -477,6 +253,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <BackTopButton />
     </div>
   );
 }

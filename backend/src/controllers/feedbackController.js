@@ -1,62 +1,81 @@
 const nodemailer = require('nodemailer');
 
-function buildTransport() {
-  if (!process.env.SMTP_HOST) {
+async function buildTransport() {
+  if (process.env.SMTP_HOST) {
     return nodemailer.createTransport({
-      streamTransport: true,
-      newline: 'unix',
-      buffer: true
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT || 587),
+      secure: String(process.env.SMTP_SECURE || 'false') === 'true',
+      auth: process.env.SMTP_USER
+        ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+        : undefined,
     });
   }
+  const test = await nodemailer.createTestAccount();
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: process.env.SMTP_USER ? {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
-    } : undefined
+    host: 'smtp.ethereal.email',
+    port: 587,
+    secure: false,
+    auth: { user: test.user, pass: test.pass },
   });
 }
 
 exports.sendFeedback = async (req, res) => {
   try {
-    const {
-      rating, 
-      category, 
-      message,
-      email,   
-      page,    
-      extras  
-    } = req.body || {};
+    const { rating, category, message, email, page, extras } = req.body || {};
+    if (!message || String(message).trim().length === 0) {
+      return res.status(400).json({ error: 'Mensagem é obrigatória.' });
+    }
 
     const to = process.env.FEEDBACK_TO || 'gabriel.silva.3@academico.ifpb.edu.br';
     const subject = `[ROVA] Feedback (${rating || 's/nota'}) - ${category || 'geral'}`;
+
+    const safeMsg = String(message).replace(/[<>]/g, c => ({'<':'&lt;','>':'&gt;'}[c]));
     const html = `
       <h2>Feedback do site</h2>
       <p><b>Rating:</b> ${rating || '-'}</p>
       <p><b>Categoria:</b> ${category || '-'}</p>
-      <p><b>Mensagem:</b><br/>${(message || '').replace(/\n/g,'<br/>')}</p>
-      <p><b>Email do usuário:</b> ${email || '-'}</p>
       <p><b>Página:</b> ${page || '-'}</p>
-      <pre style="background:#f5f5f5;padding:8px;border-radius:6px;">
-${JSON.stringify(extras || {}, null, 2)}
+      <p><b>Email do usuário:</b> ${email ? `<a href="mailto:${email}">${email}</a>` : '-'}</p>
+      <p><b>Mensagem:</b><br/>${safeMsg.replace(/\n/g,'<br/>')}</p>
+      <hr/>
+      <pre style="background:#f5f5f5;padding:8px;border-radius:6px;white-space:pre-wrap">
+${JSON.stringify({
+  ...extras,
+  ip: req.headers['x-forwarded-for'] || req.socket?.remoteAddress || null,
+  referer: req.headers.referer || null,
+}, null, 2)}
       </pre>
     `;
 
-    const transporter = buildTransport();
+    const text = [
+      'Feedback do site',
+      `Rating: ${rating || '-'}`,
+      `Categoria: ${category || '-'}`,
+      `Página: ${page || '-'}`,
+      `Email do usuário: ${email || '-'}`,
+      '',
+      'Mensagem:',
+      String(message),
+      '',
+      'Extras:',
+      JSON.stringify(extras || {}, null, 2),
+    ].join('\n');
+
+    const transporter = await buildTransport();
     const info = await transporter.sendMail({
-      from: process.env.SMTP_FROM || 'rova@no-reply',
+      from: process.env.SMTP_FROM || '"ROVA" <no-reply@rova>',
       to,
       subject,
-      html
+      html,
+      text,
+      replyTo: email || undefined,
     });
 
-    const preview = info.message ? info.message.toString() : undefined;
-
-    res.json({ ok: true, preview: process.env.SMTP_HOST ? undefined : preview });
+    const previewUrl = nodemailer.getTestMessageUrl(info) || undefined;
+    res.json({ ok: true, previewUrl });
   } catch (e) {
-    console.error(e);
+    console.error('sendFeedback error:', e);
     res.status(500).json({ error: 'Falha ao enviar feedback' });
   }
 };

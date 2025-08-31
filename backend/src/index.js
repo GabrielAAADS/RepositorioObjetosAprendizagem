@@ -10,6 +10,7 @@ const objectRoutes = require('./routes/objectRoutes');
 const previewRoute = require('./routes/previewRoute'); 
 const homeRoutes = require('./routes/homeRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
+const ratingsRoutes = require('./routes/ratingRoutes');
 const { STORAGE_DIR } = require('./services/storageService');
 const { PREVIEWS_DIR } = require('./services/slidePreviewService'); 
 
@@ -26,6 +27,8 @@ try {
   console.warn('Warn creating dirs:', e?.message);
 }
 
+app.get('/api/health', (_req, res) => res.json({ ok: true }));
+
 app.use('/api', homeRoutes);
 app.use('/api', feedbackRoutes);
 
@@ -36,7 +39,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api', objectRoutes);
 app.use('/api', previewRoute);
 
-app.get('/api/health', (_req, res) => res.json({ ok: true }));
+app.use('/api/auth', authRoutes);
+app.use('/api/objects', objectRoutes);
+app.use('/api/ratings', ratingsRoutes);
 
 app.use((req, res) => res.status(404).json({ error: 'Rota não encontrada' }));
 

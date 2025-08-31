@@ -1,0 +1,36 @@
+.wrap{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  margin-bottom:6px;
+}
+
+.label{
+  font-weight:600;
+  color:#303048;
+  font-size:.92rem;
+  line-height:1.2;
+}
+
+.badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:16px;
+  height:16px;
+  border:1.5px solid var(--primary);
+  border-radius:999px;
+  background:#fff;
+  color:var(--primary);
+  font-size:10px;
+  line-height:1;
+  padding:0;
+  cursor:help;
+  user-select:none;
+}
+
+.badge:hover{ background:rgba(69,63,225,.06); }
+.badge:focus-visible{
+  outline:3px solid rgba(69,63,225,.25);
+  outline-offset:2px;
+}

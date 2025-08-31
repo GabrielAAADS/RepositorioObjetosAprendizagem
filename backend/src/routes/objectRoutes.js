@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const os = require('os');
 const path = require('path');
-const { createObject, listObjects, listFacets, getObjectById } = require('../controllers/objectController');
+const { createObject, listObjects, listFacets, getObjectById, downloadObject } = require('../controllers/objectController');
 
 const router = express.Router();
 
@@ -20,5 +20,6 @@ router.get('/objetos/facets', listFacets);
 router.get('/objetos', listObjects);
 router.post('/objetos', upload.single('file'), createObject);
 router.get('/objetos/:id', getObjectById);
+router.get('/objetos/:id/download', downloadObject);
 
 module.exports = router;

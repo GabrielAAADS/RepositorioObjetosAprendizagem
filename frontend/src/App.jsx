@@ -10,11 +10,12 @@ import Contact from './pages/Contact';
 
 import Dashboard from './pages/Dashboard';
 import CreateObject from './pages/CreateObject';
-import SearchObjects from './pages/SearchObjects';
+import Search from './pages/Search';
 
 import PrivateRoute from './components/PrivateRoute';
 import SiteLayout from './layouts/SiteLayout';
 import ObjectDetails from './pages/ObjectDetails';
+import RatingsHistory from './pages/RatingsHistory';
 
 export default function App() {
   return (
@@ -33,7 +34,8 @@ export default function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/objects/new" element={<CreateObject />} />
             <Route path="/objects/:id" element={<ObjectDetails />} />
-            <Route path="/search" element={<SearchObjects />} />
+            <Route path="/search" element={<Search />} />
+            <Route path="/objects/:id/ratings" element={<RatingsHistory />} />
           </Route>
         </Route>
 

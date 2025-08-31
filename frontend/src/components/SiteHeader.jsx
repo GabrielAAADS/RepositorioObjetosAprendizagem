@@ -7,6 +7,7 @@ export default function SiteHeader() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const token = localStorage.getItem('token');
 
   const scrollToSection = (id) => {
     if (location.pathname !== '/') {
@@ -22,29 +23,35 @@ export default function SiteHeader() {
     setOpen(false);
   };
 
+  const logout = () => {
+    localStorage.removeItem('token');
+    setOpen(false);
+    navigate('/login', { replace: true });
+  };
+
   const linkCls = ({ isActive }) =>
     `${styles.link} ${isActive ? styles.active : ''}`;
 
   return (
     <header className={styles.header}>
       <div className={styles.container}>
-        {/* Botão hamburguer só mobile */}
         <button onClick={() => setOpen(!open)} className={styles.menuBtn}>
           {open ? <X size={24} /> : <Menu size={24} />}
         </button>
 
-        {/* Logo */}
         <Link to="/" className={styles.logo}>
-          <img src="logoShield.svg" alt="Logo" className={styles.logoImg} />
-          <span className={styles.logoText}>Logo</span>
+          <img src="logoShield.svg" alt="GAMERED" className={styles.logoImg} />
+          <span className={styles.logoText}>GAMERED</span>
         </Link>
 
-        {/* CTA sempre visível */}
         <Link to="/search" className={styles.cta}>
           Acessar Objetos
         </Link>
 
-        {/* NavLinks desktop */}
+        <Link to="/objects/new" className={styles.cta}>
+          Publicar Objeto
+        </Link>
+
         <nav className={styles.navDesktop}>
           <NavLink
             className={linkCls({})}
@@ -77,9 +84,14 @@ export default function SiteHeader() {
             Como Funciona
           </NavLink>
         </nav>
+
+        {token ? (
+          <button className={styles.link} onClick={logout}>Sair</button>
+        ) : (
+          <Link to="/login" className={styles.link} onClick={() => setOpen(false)}>Entrar</Link>
+        )}
       </div>
 
-      {/* Menu mobile */}
       {open && (
         <div className={styles.menuMobile}>
           <button
@@ -112,6 +124,11 @@ export default function SiteHeader() {
           >
             Como Funciona
           </button>
+          {token ? (
+            <button className={styles.link} onClick={logout}>Sair</button>
+          ) : (
+            <Link to="/login" className={styles.link} onClick={() => setOpen(false)}>Entrar</Link>
+          )}
         </div>
       )}
     </header>
