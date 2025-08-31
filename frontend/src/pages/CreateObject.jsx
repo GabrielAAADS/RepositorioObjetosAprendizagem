@@ -9,6 +9,7 @@ import InstallExtensionModal from '../components/InstallExtensionModal';
 import css from './CreateObject.module.css';
 
 export default function CreateObject() {
+  
   const minsToISO = (m) => {
     const n = parseInt(m, 10);
     if (!n || n <= 0) return undefined;
@@ -100,6 +101,7 @@ export default function CreateObject() {
   const [installOpen, setInstallOpen] = useState(false);
   const [installPayload, setInstallPayload] = useState(null);
   const [installError, setInstallError] = useState(null);
+  const [isDragging, setIsDragging] = useState(false); // Estado para o efeito de arrastar
 
   const onChange = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
   const onLom = (section, field) => (e) => setLom((prev) => ({ ...prev, [section]: { ...prev[section], [field]: e.target.value } }));
@@ -274,8 +276,14 @@ export default function CreateObject() {
     }
   }
 
+  const handleDragEvents = (e, dragging) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(dragging);
+  };
+
   const onDrop = (ev) => {
-    ev.preventDefault();
+    handleDragEvents(ev, false);
     const f = ev.dataTransfer?.files?.[0];
     if (f) onFile({ target: { files: [f] } });
   };
@@ -284,8 +292,8 @@ export default function CreateObject() {
     <div className={css.page}>
       <div className={css.header}>
         <div>
-          <h1 className={css.title}>Cadastrar Objeto</h1>
-          <p className={css.subtitle}>Envie o arquivo, descreva e complete metadados para o catálogo.</p>
+          <h1 className={css.title}>Cadastrar Objeto de Aprendizagem</h1>
+          <p className={css.subtitle}>Envie o arquivo, descreva e complete os metadados para o catálogo.</p>
         </div>
         <button type="button" onClick={() => setAdvanced((a) => !a)} className={css.ghostBtn}>
           {advanced ? 'Modo Simples' : 'Modo Avançado'}
@@ -302,35 +310,35 @@ export default function CreateObject() {
       <div className={css.grid}>
         <form onSubmit={submit} className={css.form}>
           <section className={css.section}>
-            <h2 className={css.sectionTitle}>Informações básicas</h2>
+            <h2 className={css.sectionTitle}>Informações Básicas</h2>
             <div className={css.fieldsGrid}>
               <div className={css.fieldFull}>
-                <InfoLabel label="Título *" info="Nome do objeto no catálogo e na busca." />
+                <InfoLabel label="Título *" info="Nome principal do objeto. Será usado no catálogo e na busca." />
                 <input
                   name="title"
                   value={form.title}
                   onChange={onChange}
                   className={css.input}
-                  placeholder="Ex.: Jogo da Velha 3D — estratégias"
+                  placeholder="Ex.: Jogo da Velha 3D — Estratégias Avançadas"
                   required
                 />
               </div>
 
               <div className={css.fieldFull}>
-                <InfoLabel label="Descrição" info="Resumo do objeto; aparece na listagem e nos metadados educacionais." />
+                <InfoLabel label="Descrição" info="Resumo do objeto. Aparecerá na listagem e nos metadados educacionais." />
                 <textarea
                   name="description"
                   value={form.description}
                   onChange={onChange}
                   className={`${css.input} ${css.textarea}`}
                   rows={4}
-                  placeholder="Conte brevemente objetivo, público-alvo e como usar."
+                  placeholder="Descreva brevemente o objetivo, público-alvo e como utilizar o recurso."
                 />
               </div>
 
               <div className={css.fieldHalf}>
-                <label className={css.label}>Categoria</label>
-                <select name="category" value={form.category} onChange={onChange} className={css.select}>
+                <label htmlFor="category-select" className={css.label}>Categoria</label>
+                <select id="category-select" name="category" value={form.category} onChange={onChange} className={css.select}>
                   {ENUMS.categories.map((c) => (
                     <option key={c} value={c}>{c}</option>
                   ))}
@@ -340,11 +348,18 @@ export default function CreateObject() {
           </section>
 
           <section className={css.section}>
-            <h2 className={css.sectionTitle}>Arquivo</h2>
-            <div className={css.dropzone} onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
-              <p>Arraste e solte aqui ou <span className={css.highlight}>clique</span> para selecionar o arquivo (pptx/pptm/ppt) *</p>
-              <input type="file" accept={ALLOWED_EXT.join(',')} onChange={onFile} className={css.fileInput} required />
-              {file && <p className={css.muted}>Selecionado: <strong>{file.name}</strong> — {(file.size / 1024 / 1024).toFixed(1)} MB</p>}
+            <h2 className={css.sectionTitle}>Arquivo do Objeto</h2>
+            <div 
+              className={`${css.dropzone} ${isDragging ? css.dragOver : ''}`}
+              onDragOver={(e) => handleDragEvents(e, true)}
+              onDragEnter={(e) => handleDragEvents(e, true)}
+              onDragLeave={(e) => handleDragEvents(e, false)}
+              onDrop={onDrop}
+            >
+              <p>Arraste e solte o arquivo aqui ou <label htmlFor="file-upload" className={css.highlight}>clique para selecionar</label>.</p>
+              <p className={css.muted}>Formatos aceitos: {ALLOWED_EXT.join(', ')}. Tamanho máximo: {MAX_FILE_MB}MB.</p>
+              <input id="file-upload" type="file" accept={ALLOWED_EXT.join(',')} onChange={onFile} className={css.fileInput} required />
+              {file && <p className={css.fileInfo}>Arquivo selecionado: <strong>{file.name}</strong> ({(file.size / 1024 / 1024).toFixed(1)} MB)</p>}
             </div>
           </section>
 
@@ -352,11 +367,11 @@ export default function CreateObject() {
               <section ref={advancedRef} className={css.section}>
                 <h2 className={css.sectionTitle}>Metadados (Avançado)</h2>
 
-              <div className={css.acc}>
+              <div className={css.accordionWrapper}>
                 <Accordion title="Geral" defaultOpen> 
                 <div className={css.fieldsGrid}>
                   <div className={css.fieldHalf}>
-                    <label className={css.label}>Palavras-chave</label>
+        
                     <TagInput label="Palavras-chave" tags={lom.general.keyword} onAdd={addKeyword('general')} onRemove={removeKeyword('general')} />
                   </div>
                   <div className={css.fieldHalf}>
@@ -369,7 +384,7 @@ export default function CreateObject() {
               </Accordion>
               </div>
 
-              <div className={css.acc}>
+              <div className={css.accordionWrapper}>
                 <Accordion title="Ciclo de Vida">
                 <div className={css.fieldsGrid}>
                   <div className={css.fieldThird}>
@@ -390,7 +405,7 @@ export default function CreateObject() {
                   <div className={css.fieldThird}>
                     <label className={css.label}>Status</label>
                       <select value={lom.lifecycle.status} onChange={onLom('lifecycle', 'status')} className={css.select}>
-                        <option value="">—</option>
+                        <option value="">— Selecione —</option>
                         {ENUMS.lifecycleStatus.map(o => (
                           <option key={o} value={o}>{labelOf('lifecycleStatus', o)}</option>
                         ))}
@@ -401,7 +416,7 @@ export default function CreateObject() {
                     <input type="date" value={lom.lifecycle.contributeDate} onChange={onLom('lifecycle', 'contributeDate')} className={css.input} />
                   </div>
                   <div className={css.fieldHalf}>
-                    <InfoLabel label="Cargo" info="Autor(a), Professor(a), Revisor(a)…" />
+                    <InfoLabel label="Cargo do Contribuidor" info="Ex: Autor(a), Revisor(a)..." />
                     <input
                       placeholder="Ex.: Autor(a)"
                       value={lom.lifecycle.contributeRole}
@@ -410,7 +425,7 @@ export default function CreateObject() {
                     />
                   </div>
                   <div className={css.fieldHalf}>
-                    <InfoLabel label="Entidade" info="Organização/afiliação do(a) contribuidor(a)." />
+                    <InfoLabel label="Entidade Contribuidora" info="Organização ou afiliação." />
                     <input
                       placeholder="Ex.: Equipe ROVA"
                       value={lom.lifecycle.contributeEntity}
@@ -422,11 +437,11 @@ export default function CreateObject() {
               </Accordion>
             </div>
 
-              <div className={css.acc}>
+              <div className={css.accordionWrapper}>
                 <Accordion title="Técnico">
                   <div className={css.fieldsGrid}>
                     <div className={css.fieldThird}>
-                      <label className={css.label}>Formato</label>
+                      <label className={css.label}>Formato (MIME Type)</label>
                       <input value={lom.technical.format} onChange={onLom('technical', 'format')} className={css.input} readOnly />
                     </div>
                     <div className={css.fieldThird}>
@@ -434,70 +449,70 @@ export default function CreateObject() {
                       <input value={lom.technical.size} onChange={onLom('technical', 'size')} className={css.input} readOnly />
                     </div>
                     <div className={css.fieldThird}>
-                      <label className={css.label}>Nome do arquivo</label>
+                      <label className={css.label}>Nome do Arquivo</label>
                       <input value={lom.technical.location} onChange={onLom('technical', 'location')} className={css.input} readOnly />
                     </div>
                   </div>
                 </Accordion>
               </div>
 
-              <div className={css.acc}>
+              <div className={css.accordionWrapper}>
                 <Accordion title="Educacional">
                   <div className={css.fieldsGrid}>
                     <div className={css.fieldHalf}>
-                      <label className={css.label}>Interatividade</label>
+                      <label className={css.label}>Nível de Interatividade</label>
                         <select value={lom.educational.interactivityType} onChange={onLom('educational', 'interactivityType')} className={css.select}>
-                          <option value="">—</option>
+                          <option value="">— Selecione —</option>
                           {ENUMS.interactivityType.map(o => (
                             <option key={o} value={o}>{labelOf('interactivityType', o)}</option>
                           ))}
                         </select>
                     </div>
                     <div className={css.fieldHalf}>
-                      <label className={css.label}>Tipo de Recurso</label>
+                      <label className={css.label}>Tipo de Recurso de Aprendizagem</label>
                         <select value={lom.educational.learningResourceType} onChange={onLom('educational', 'learningResourceType')} className={css.select}>
-                          <option value="">—</option>
+                          <option value="">— Selecione —</option>
                           {ENUMS.learningResourceType.map(o => (
                             <option key={o} value={o}>{labelOf('learningResourceType', o)}</option>
                           ))}
                         </select>
                     </div>
                     <div className={css.fieldHalf}>
-                      <label className={css.label}>Papel do Usuário</label>
+                      <label className={css.label}>Público-Alvo</label>
                         <select value={lom.educational.intendedEndUserRole} onChange={onLom('educational', 'intendedEndUserRole')} className={css.select}>
-                          <option value="">—</option>
+                          <option value="">— Selecione —</option>
                           {ENUMS.endUserRole.map(o => (
                             <option key={o} value={o}>{labelOf('endUserRole', o)}</option>
                           ))}
                         </select>
                     </div>
                     <div className={css.fieldHalf}>
-                      <label className={css.label}>Contexto</label>
+                      <label className={css.label}>Contexto de Aprendizagem</label>
                         <select value={lom.educational.context} onChange={onLom('educational', 'context')} className={css.select}>
-                          <option value="">—</option>
+                          <option value="">— Selecione —</option>
                           {ENUMS.context.map(o => (
                             <option key={o} value={o}>{labelOf('context', o)}</option>
                           ))}
                         </select>
                     </div>
                     <div className={css.fieldHalf}>
-                      <label className={css.label}>Faixa Etária</label>
+                      <label className={css.label}>Faixa Etária Típica</label>
                       <select value={lom.educational.typicalAgeRange} onChange={onLom('educational', 'typicalAgeRange')} className={css.select}>
-                        <option value="">—</option>
+                        <option value="">— Selecione —</option>
                         {ENUMS.ageRanges.map((a) => (<option key={a} value={a}>{a}</option>))}
                       </select>
                     </div>
                     <div className={css.fieldHalf}>
-                      <label className={css.label}>Dificuldade</label>
+                      <label className={css.label}>Nível de Dificuldade</label>
                         <select value={lom.educational.difficulty} onChange={onLom('educational', 'difficulty')} className={css.select}>
-                          <option value="">—</option>
+                          <option value="">— Selecione —</option>
                           {ENUMS.difficulty.map(o => (
                             <option key={o} value={o}>{labelOf('difficulty', o)}</option>
                           ))}
                         </select>
                     </div>
                     <div className={css.fieldThird}>
-                      <InfoLabel label="Tempo médio (min)" info="Tempo médio de aprendizagem" />
+                      <InfoLabel label="Tempo de Aprendizagem (min)" info="Tempo médio estimado para concluir a atividade." />
                       <input
                         type="number"
                         min="1"
@@ -513,10 +528,11 @@ export default function CreateObject() {
                         onChange={onLom('educational', 'description')}
                         className={`${css.input} ${css.textarea}`}
                         rows={3}
+                        placeholder="Se necessário, detalhe aqui os aspectos pedagógicos do objeto."
                       />
                     </div>
                     <div className={css.fieldHalf}>
-                      <InfoLabel label="Idioma Educacional" info="Idioma do conteúdo" />
+                      <InfoLabel label="Idioma do Conteúdo" info="Idioma principal do material educacional." />
                       <select value={lom.educational.language} onChange={onLom('educational', 'language')} className={css.select}>
                         {LANGS.map((l) => (<option key={l} value={l}>{l}</option>))}
                       </select>
@@ -525,8 +541,8 @@ export default function CreateObject() {
                 </Accordion>
               </div>
 
-              <div className={css.acc}>
-                <Accordion title="Direitos">
+              <div className={css.accordionWrapper}>
+                <Accordion title="Direitos de Uso">
                   <div className={css.fieldsGrid}>
                     <div className={css.fieldHalf}>
                       <label className={css.label}>Custo</label>
@@ -537,32 +553,34 @@ export default function CreateObject() {
                         </select>
                     </div>
                     <div className={css.fieldHalf}>
-                      <label className={css.label}>Copyright/Restrições</label>
+                      <label className={css.label}>Copyright e Restrições</label>
                       <input
                         value={lom.rights.copyrightAndOtherRestrictions}
                         onChange={onLom('rights', 'copyrightAndOtherRestrictions')}
                         className={css.input}
+                        placeholder="Ex: CC-BY-NC"
                       />
                     </div>
                     <div className={css.fieldFull}>
-                      <label className={css.label}>Descrição de Direitos</label>
+                      <label className={css.label}>Descrição dos Direitos</label>
                       <textarea
                         value={lom.rights.description}
                         onChange={onLom('rights', 'description')}
                         className={`${css.input} ${css.textarea}`}
                         rows={3}
+                        placeholder="Detalhe aqui as condições de uso, se houver."
                       />
                     </div>
                   </div>
                 </Accordion>
               </div>
 
-              <div className={css.acc}>
+              <div className={css.accordionWrapper}>
                 <Accordion title="Classificação">
                   <div className={css.fieldsGrid}>
                     <div className={css.fieldHalf}>
-                      <label className={css.label}>Propósito</label>
-                      <input value={lom.classification.purpose} onChange={onLom('classification', 'purpose')} className={css.input} />
+                      <label className={css.label}>Propósito da Classificação</label>
+                      <input placeholder="Ex: Disciplina, Competência" value={lom.classification.purpose} onChange={onLom('classification', 'purpose')} className={css.input} />
                     </div>
                   </div>
                 </Accordion>
@@ -578,7 +596,7 @@ export default function CreateObject() {
               </div>
             )}
             <button type="submit" disabled={submitting} className={`${css.primaryBtn} ${css.wFull}`}>
-              {submitting ? 'Enviando…' : 'Salvar'}
+              {submitting ? `Enviando... ${uploadPct}%` : 'Salvar e Publicar Objeto'}
             </button>
           </div>
         </form>
@@ -586,27 +604,27 @@ export default function CreateObject() {
         <aside className={css.aside}>
           <section className={css.section}>
             <h2 className={css.sectionTitle}>Thumbnail</h2>
-            <div className={css.thumbRow}>
-              <div className={css.thumbBox}>{thumbUrl ? <img src={thumbUrl} alt="thumbnail" /> : <span className={css.muted}>Sem preview</span>}</div>
-              <button type="button" disabled={!previewSlides.length} onClick={() => setOpenPicker(true)} className={css.ghostBtn}>
-                Escolher miniatura…
-              </button>
+            <p className={css.muted}>Escolha a imagem que melhor representa o objeto. Ela será a capa no catálogo.</p>
+            <div className={css.thumbBox}>
+              {thumbUrl ? <img src={thumbUrl} alt="Thumbnail do objeto" /> : <span className={css.placeholderText}>Sem preview</span>}
             </div>
-            {!!previewSlides.length && <p className={css.muted}>Dica: escolha o slide que melhor representa o objeto.</p>}
+            <button type="button" disabled={!previewSlides.length} onClick={() => setOpenPicker(true)} className={`${css.ghostBtn} ${css.wFull}`}>
+              Selecionar Slide como Thumbnail
+            </button>
           </section>
 
           <section className={css.section}>
-            <h2 className={css.sectionTitle}>Pré-visualização</h2>
-            {previewSlides?.length ? (
+            <h2 className={css.sectionTitle}>Pré-visualização dos Slides</h2>
+            {previewSlides?.length > 0 ? (
               <div className={css.previewGrid}>
                 {previewSlides.slice(0, 9).map((s, i) => (
-                  <button key={s} type="button" onClick={() => setThumbUrl(s)} className={css.previewBtn} title={`Slide ${i + 1}`}>
-                    <img src={s} alt={`Slide ${i + 1}`} />
+                  <button key={s} type="button" onClick={() => setThumbUrl(s)} className={css.previewBtn} title={`Selecionar slide ${i + 1} como thumbnail`}>
+                    <img src={s} alt={`Preview do Slide ${i + 1}`} loading="lazy" />
                   </button>
                 ))}
               </div>
             ) : (
-              <p className={css.muted}>O preview aparece após enviar um arquivo suportado.</p>
+              <p className={css.muted}>A pré-visualização dos slides aparecerá aqui após o envio de um arquivo compatível.</p>
             )}
           </section>
         </aside>
