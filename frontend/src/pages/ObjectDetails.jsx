@@ -91,12 +91,10 @@ export default function ObjectDetails() {
   const [myVersion, setMyVersion] = useState('');
   const [tab, setTab] = useState('geral');
 
-  // histórico do usuário (escadinha)
   const [myList, setMyList] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const [confirmUpdate, setConfirmUpdate] = useState(false);
 
-  // comunidade (scroll infinito)
   const COMM_LIMIT = 20;
   const [commItems, setCommItems] = useState([]);
   const [commTotal, setCommTotal] = useState(0);

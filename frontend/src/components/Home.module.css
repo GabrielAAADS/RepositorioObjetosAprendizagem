@@ -806,3 +806,24 @@
 }
 .seeAllBtn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(80, 76, 255, .32); }
 .seeAllBtn:active { transform: translateY(0); box-shadow: 0 4px 14px rgba(80, 76, 255, .22); }
+
+.carouselWrap{
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  padding: 4px 0;
+}
+
+.seeAllBtn{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;   
+  border-radius: 12px;
+  background: var(--primary);
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(78, 70, 229, .25);
+}
+.seeAllBtn:hover{ opacity:.95; transform: translateY(-1px); }

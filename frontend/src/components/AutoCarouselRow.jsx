@@ -1,95 +1,92 @@
-import { useEffect, useRef, useState, useMemo } from "react";
-import styles from "./AutoCarouselRow.module.css";
-
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 export default function AutoCarouselRow({
   items = [],
   renderItem,
-  speed = 30,
+  speed = 24,
   gap = 16,
-  dir = "ltr",
-  pauseOnHover = true,
-  minItemWidth = 280,
+  dir = 'ltr',
+  minItemWidth = 300,
 }) {
   const wrapRef = useRef(null);
-  const trackRef = useRef(null);
-  const [running, setRunning] = useState(true);
-
-  const loopItems = useMemo(() => [...items, ...items], [items]);
-
-  useEffect(() => {
-    if (!wrapRef.current || !trackRef.current || loopItems.length === 0) return;
-
-    const wrap = wrapRef.current;
-    const track = trackRef.current;
-    let rafId;
-    let last = performance.now();
-    let x = 0;
-
-    const totalWidth = track.scrollWidth / 2; 
-
-    function frame(now) {
-      const dt = (now - last) / 1000;
-      last = now;
-      if (running) {
-        const delta = speed * dt * (dir === "rtl" ? -1 : 1);
-        x -= delta;
-        if (dir === "rtl") {
-          if (x <= -totalWidth) x += totalWidth;
-        } else {
-          if (x >= totalWidth) x -= totalWidth;
-        }
-        track.style.transform = `translateX(${x}px)`;
-      }
-      rafId = requestAnimationFrame(frame);
-    }
-    rafId = requestAnimationFrame(frame);
-    return () => cancelAnimationFrame(rafId);
-  }, [loopItems, speed, dir, running]);
-
-  const hoverProps = pauseOnHover
-    ? {
-        onMouseEnter: () => setRunning(false),
-        onMouseLeave: () => setRunning(true),
-        onFocus: () => setRunning(false),
-        onBlur: () => setRunning(true),
-      }
-    : {};
+  const [copies, setCopies] = useState(1);
 
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
-    const onWheel = (e) => {
-      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-        e.preventDefault();
-        el.scrollLeft += e.deltaX;
-      }
+
+    const calc = () => {
+      const W = el.clientWidth || 0;
+      const perLoop = items.length * (minItemWidth + gap);
+      const needed = perLoop === 0 ? 1 : Math.max(1, Math.ceil((W * 1.4) / perLoop)); // 1.4 pra sobrar
+      setCopies(needed);
     };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, []);
+
+    calc();
+    const ro = new ResizeObserver(calc);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [items.length, minItemWidth, gap]);
+
+  const track = useMemo(() => {
+    const loops = [];
+    for (let i = 0; i < copies; i++) {
+      loops.push(
+        <div
+          key={`loop-${i}`}
+          style={{ display: 'flex', gap, paddingRight: gap }}
+          aria-hidden={i > 0}
+        >
+          {items.map((it, idx) => (
+            <div key={`it-${i}-${idx}`} style={{ minWidth: minItemWidth }}>
+              {renderItem(it)}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return loops;
+  }, [copies, items, renderItem, gap, minItemWidth]);
+
+  const totalWidth = (items.length * (minItemWidth + gap)) * copies;
+  const duration = totalWidth > 0 ? Math.max(12, Math.round(totalWidth / speed)) : 16;
+
+  const keyframes = `
+    @keyframes acr-marquee-ltr {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+    @keyframes acr-marquee-rtl {
+      from { transform: translateX(-50%); }
+      to   { transform: translateX(0); }
+    }
+  `;
 
   return (
     <div
       ref={wrapRef}
-      className={styles.wrap}
-      {...hoverProps}
-      aria-roledescription="carrossel automático"
+      style={{
+        width: '100%',
+        overflow: 'hidden',
+        position: 'relative',
+        padding: '8px 0',
+        WebkitMaskImage: 'linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent)',
+        maskImage: 'linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent)',
+      }}
     >
+      <style>{keyframes}</style>
       <div
-        ref={trackRef}
-        className={styles.track}
-        style={{ gap: `${gap}px` }}
+        style={{
+          display: 'flex',
+          flexWrap: 'nowrap',
+          alignItems: 'stretch',
+          gap,
+          width: 'max-content',
+          animation: `${dir === 'rtl' ? 'acr-marquee-rtl' : 'acr-marquee-ltr'} ${duration}s linear infinite`,
+        }}
       >
-        {loopItems.map((it, i) => (
-          <div
-            key={`it-${i}`}
-            className={styles.item}
-            style={{ minWidth: `${minItemWidth}px` }}
-          >
-            {renderItem(it, i % (items.length || 1))}
-          </div>
-        ))}
+        <div style={{ display: 'flex' }}>{track}</div>
+        <div style={{ display: 'flex' }}>{track}</div>
       </div>
     </div>
   );

@@ -6,39 +6,89 @@ import homeCss from '../components/Home.module.css';
 import css from '../components/Search.module.css';
 
 const FACET_GROUPS = [
-  { key:'status',           title:'Status do Ciclo de Vida', path:'lom.lifecycle.status' },
-  { key:'difficulty',       title:'Dificuldade',              path:'lom.educational.difficulty' },
-  { key:'resourceType',     title:'Tipo de Recurso',          path:'lom.educational.learningResourceType' },
-  { key:'interactivityType',title:'Interatividade',           path:'lom.educational.interactivityType' },
-  { key:'endUserRole',      title:'Papel do Usuário',         path:'lom.educational.intendedEndUserRole' },
-  { key:'context',          title:'Contexto',                 path:'lom.educational.context' },
-  { key:'language',         title:'Idioma do Objeto',         path:'lom.general.language' },
-  { key:'eduLanguage',      title:'Idioma Educacional',       path:'lom.educational.language' },
-  { key:'cost',             title:'Custo',                    path:'lom.rights.cost' },
-  { key:'keywords',         title:'Palavras-chave',           path:'lom.general.keyword', isKeyword:true },
+  { key: 'status',            title: 'Status do Ciclo de Vida', path: 'lom.lifecycle.status' },
+  { key: 'difficulty',        title: 'Dificuldade',             path: 'lom.educational.difficulty' },
+  { key: 'resourceType',      title: 'Tipo de Recurso',         path: 'lom.educational.learningResourceType' },
+  { key: 'interactivityType', title: 'Interatividade',          path: 'lom.educational.interactivityType' },
+  { key: 'endUserRole',       title: 'Papel do Usuário',        path: 'lom.educational.intendedEndUserRole' },
+  { key: 'context',           title: 'Contexto',                path: 'lom.educational.context' },
+  { key: 'language',          title: 'Idioma do Objeto',        path: 'lom.general.language' },
+  { key: 'eduLanguage',       title: 'Idioma Educacional',      path: 'lom.educational.language' },
+  { key: 'cost',              title: 'Custo',                   path: 'lom.rights.cost' },
+  { key: 'keywords',          title: 'Palavras-chave',          path: 'lom.general.keyword', isKeyword: true },
 ];
 
 const PATH2KEY = Object.fromEntries(FACET_GROUPS.map(g => [g.path, g.key]));
 
-const getFacetLabel = (facets, path, value) => {
-  const key = PATH2KEY[path];
-  const list = facets[key] || [];
-  const hit = list.find(i => String(i.value) === String(value));
-  return hit?.label || prettyLabel(key, value);
+const norm = (s) => String(s ?? '').trim().toLowerCase();
+const normKey = (s) =>
+  norm(s)
+    .normalize('NFD').replace(/\p{Diacritic}/gu, '') 
+    .replace(/[\s-]+/g, '_')                         
+    .replace(/__+/g, '_');                           
+
+const MAP = {
+  status: {
+    draft: 'Rascunho', final: 'Final', revised: 'Revisado', unavailable: 'Indisponível',
+  },
+  difficulty: {
+    very_easy: 'Muito fácil', easy: 'Fácil', medium: 'Médio',
+    difficult: 'Difícil', very_difficult: 'Muito difícil',
+  },
+  resourceType: {
+    game: 'Jogo', jogo: 'Jogo',
+    exercise: 'Exercício', exercicio: 'Exercício',
+    lesson: 'Lição', simulation: 'Simulação',
+    questionnaire: 'Questionário', quiz: 'Quiz',
+    animation: 'Animação', presentation: 'Apresentação',
+  },
+  interactivityType: {
+    active: 'Ativa', expositive: 'Expositiva', mixed: 'Mista',
+  },
+  endUserRole: {
+    teacher: 'Professor', learner: 'Estudante', author: 'Autor', manager: 'Gestor',
+  },
+  context: {
+    primary_education: 'Ensino Fundamental', primary: 'Ensino Fundamental',
+    secondary_education: 'Ensino Médio', secondary: 'Ensino Médio',
+    higher_education: 'Ensino Superior', highereducation: 'Ensino Superior',
+    'higher-education': 'Ensino Superior',
+    school: 'Escolar', university: 'Universidade', training: 'Treinamento',
+  },
 };
 
-function prettyLabel(key, value) {
+function labelFromMap(groupKey, value) {
+  const k = normKey(value);
+  const table = MAP[groupKey];
+  if (!table) return null;
+  return (
+    table[k] ||
+    table[k.replace(/_/g, ' ')] ||
+    table[k.replace(/_/g, '')] ||
+    null
+  );
+}
+
+function prettyLabel(groupKey, value) {
   if (value == null || String(value).trim() === '') return 'Sem valor';
-  if (key === 'cost') {
-    const v = String(value).toLowerCase();
-    return v === 'yes' || v === 'true' ? 'Com custo' : v === 'no' || v === 'false' ? 'Gratuito' : String(value);
+
+  if (groupKey === 'cost') {
+    const v = norm(value);
+    if (v === 'yes' || v === 'true') return 'Com custo';
+    if (v === 'no'  || v === 'false') return 'Gratuito';
   }
-  if (key === 'language' || key === 'eduLanguage') {
-    const v = String(value).toLowerCase();
+
+  if (groupKey === 'language' || groupKey === 'eduLanguage') {
+    const v = norm(value);
     if (v.startsWith('pt')) return 'Português';
     if (v.startsWith('en')) return 'Inglês';
     if (v.startsWith('es')) return 'Espanhol';
+    if (v.startsWith('fr')) return 'Francês';
   }
+
+  const mapped = labelFromMap(groupKey, value);
+  if (mapped) return mapped;
+
   return String(value);
 }
 
@@ -47,11 +97,8 @@ export default function Search() {
   const [sp] = useSearchParams();
 
   const [q, setQ] = useState(sp.get('q') || '');
-
   const [selected, setSelected] = useState({});
-
   const [facetSearch, setFacetSearch] = useState({});
-
   const [facets, setFacets] = useState({});
   const [objects, setObjects] = useState([]);
   const [total, setTotal] = useState(0);
@@ -61,6 +108,29 @@ export default function Search() {
 
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
+
+  useEffect(() => {
+    const kw = sp.get('keyword');
+    const ctx = sp.get('context');
+    if (!kw && !ctx) return;
+
+    setSelected(prev => {
+      const next = { ...prev };
+      if (kw) {
+        const p = 'lom.general.keyword';
+        const s = new Set(next[p] || []);
+        s.add(kw);
+        next[p] = s;
+      }
+      if (ctx) {
+        const p = 'lom.educational.context';
+        const s = new Set(next[p] || []);
+        s.add(ctx);
+        next[p] = s;
+      }
+      return next;
+    });
+  }, []);
 
   const lomFilters = useMemo(() => {
     const lom = {};
@@ -76,11 +146,19 @@ export default function Search() {
       const params = { title: q };
       if (Object.keys(lomFilters).length) params.lomFilters = JSON.stringify(lomFilters);
       const { data } = await api.get('/objetos/facets', { params });
+
       const clean = {};
       for (const g of FACET_GROUPS) {
-        const items = (data.facets?.[g.key] || [])
+        const raw = Array.isArray(data.facets?.[g.key]) ? data.facets[g.key] : [];
+        const items = raw
           .filter(x => x && x.value != null && String(x.value).trim() !== '')
-          .map(x => ({ value: x.value, count: x.count }));
+          .filter(x => !/^\d+$/.test(String(x.value).trim()))
+          .map(x => ({
+            value: x.value,
+            count: x.count,
+            label: g.isKeyword ? String(x.value) : prettyLabel(g.key, x.value),
+          }))
+          .sort((a, b) => (b.count || 0) - (a.count || 0));
         clean[g.key] = items;
       }
       setFacets(clean);
@@ -106,16 +184,23 @@ export default function Search() {
     }
   }
 
-  useEffect(() => {
-    setPage(1);
-  }, [q, JSON.stringify(lomFilters)]);
+  useEffect(() => { setPage(1); }, [q, JSON.stringify(lomFilters)]);
 
   useEffect(() => {
     loadObjects(1);
     loadFacets();
+
     const params = new URLSearchParams();
     if (q) params.set('q', q);
     if (page > 1) params.set('page', String(page));
+    const selectedPairs = [];
+    Object.entries(selected).forEach(([path, set]) => {
+      Array.from(set).forEach(v => selectedPairs.push([path, String(v)]));
+    });
+    selectedPairs.forEach(([path, v], idx) => {
+      params.append(`f${idx}`, `${path}::${v}`);
+    });
+
     navigate(`/search?${params.toString()}`, { replace: true });
   }, [q, page, JSON.stringify(lomFilters)]);
 
@@ -135,11 +220,21 @@ export default function Search() {
     setPage(1);
   };
 
-  const filterOptions = (list, q) => {
-    const base = !q ? list : list.filter(o =>
-      String(o.value).toLowerCase().includes(q.toLowerCase())
-    );
-    return base.filter(o => !/^\d+$/.test(String(o.value).trim()));
+  const filterOptions = (list, qstr) => {
+    const base = !qstr
+      ? list
+      : list.filter(o =>
+          String(o.value).toLowerCase().includes(qstr.toLowerCase()) ||
+          String(o.label || '').toLowerCase().includes(qstr.toLowerCase())
+        );
+    return base;
+  };
+
+  const getFacetLabel = (facetsState, path, value) => {
+    const key = PATH2KEY[path];
+    const list = facetsState[key] || [];
+    const hit = list.find(i => String(i.value) === String(value));
+    return hit?.label || prettyLabel(key, value);
   };
 
   const activeChips = Object.entries(selected)
@@ -162,7 +257,7 @@ export default function Search() {
 
       {activeChips.length > 0 && (
         <div className={css.chips}>
-          {activeChips.map((c, i) => (
+          {activeChips.map((c) => (
             <span key={`${c.path}:${String(c.value)}`} className={css.chip}>
               {getFacetLabel(facets, c.path, c.value)}
               <button onClick={() => toggleValue(c.path, c.value)}>×</button>
@@ -195,17 +290,16 @@ export default function Search() {
 
                 <div className={css.list}>
                   {list.length === 0 && <p className={homeCss.error} style={{ margin: 8 }}>Sem opções</p>}
-
                   {list.map((o, idx) => {
                     const sel = selected[group.path]?.has(o.value) || false;
                     return (
                       <label key={`${group.key}:${String(o.value)}:${idx}`} className={css.item}>
                         <input
                           type="checkbox"
-                          checked={selected[group.path]?.has(o.value) || false}
+                          checked={sel}
                           onChange={() => toggleValue(group.path, o.value)}
                         />
-                        <span className="flex-1">{o.label || prettyLabel(group.key, o.value)}</span>
+                        <span className="flex-1">{o.label}</span>
                         <span className={css.count}>{o.count}</span>
                       </label>
                     );
@@ -219,6 +313,7 @@ export default function Search() {
         <section>
           {loading && <p className={homeCss.loading}>Carregando…</p>}
           {err && <p className={homeCss.error}>{err}</p>}
+
           {!loading && objects.length === 0 && (
             <div className={homeCss.noObjects}>
               <p>Nenhum objeto encontrado.</p>
