@@ -15,8 +15,15 @@
   height: 4rem;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: space-between; /* corrigido */
 }
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem; /* espaço entre "Publicar Objeto" e "Sair/Entrar" */
+}
+
 .logo {
   display: flex;
   align-items: center;
@@ -58,7 +65,7 @@
 }
 
 .cta {
-  display: inline-block; 
+  display: inline-block;
   background: #4f46e5;
   color: white;
   padding: 0.5rem 1rem;
@@ -68,7 +75,6 @@
   text-decoration: none;
   transition: background 0.2s;
   border: 1px solid transparent;
-
   order: 3;
 }
 
@@ -133,8 +139,11 @@
     align-items: center;
   }
 
-  .cta {
+  .actions {
     order: 3;
+  }
+
+  .cta {
     display: inline-block;
     border: 1px solid transparent;
   }

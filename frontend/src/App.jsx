@@ -16,6 +16,7 @@ import PrivateRoute from './components/PrivateRoute';
 import SiteLayout from './layouts/SiteLayout';
 import ObjectDetails from './pages/ObjectDetails';
 import RatingsHistory from './pages/RatingsHistory';
+import ObjectRatings from './pages/ObjectRatings';
 
 export default function App() {
   return (
@@ -35,7 +36,7 @@ export default function App() {
             <Route path="/objects/new" element={<CreateObject />} />
             <Route path="/objects/:id" element={<ObjectDetails />} />
             <Route path="/search" element={<Search />} />
-            <Route path="/objects/:id/ratings" element={<RatingsHistory />} />
+            <Route path="/objects/:id/ratings" element={<ObjectRatings />} />
           </Route>
         </Route>
 

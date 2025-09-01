@@ -322,7 +322,7 @@ export default function Search() {
           )}
 
           {!loading && objects.length > 0 && (
-            <div className={homeCss.objectsGrid}>
+            <div className={css.resultsGrid}>
               {objects.map((o) => <ObjectCard key={o.id} obj={o} />)}
             </div>
           )}

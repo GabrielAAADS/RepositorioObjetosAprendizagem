@@ -44,13 +44,18 @@ export default function SiteHeader() {
           <span className={styles.logoText}>GAMERED</span>
         </Link>
 
-        <Link to="/search" className={styles.cta}>
-          Acessar Objetos
-        </Link>
+     
+        <div className={styles.actions}>
+          <Link to="/objects/new" className={styles.cta}>
+            Publicar Objeto
+          </Link>
 
-        <Link to="/objects/new" className={styles.cta}>
-          Publicar Objeto
-        </Link>
+          {token ? (
+            <button className={styles.link} onClick={logout}>Sair</button>
+          ) : (
+            <Link to="/login" className={styles.link} onClick={() => setOpen(false)}>Entrar</Link>
+          )}
+        </div>
 
         <nav className={styles.navDesktop}>
           <NavLink
@@ -84,44 +89,23 @@ export default function SiteHeader() {
             Como Funciona
           </NavLink>
         </nav>
-
-        {token ? (
-          <button className={styles.link} onClick={logout}>Sair</button>
-        ) : (
-          <Link to="/login" className={styles.link} onClick={() => setOpen(false)}>Entrar</Link>
-        )}
       </div>
 
       {open && (
         <div className={styles.menuMobile}>
-          <button
-            className={styles.link}
-            onClick={() => scrollToSection('hero')}
-          >
+          <button className={styles.link} onClick={() => scrollToSection('hero')}>
             Home
           </button>
-          <button
-            className={styles.link}
-            onClick={() => scrollToSection('popular')}
-          >
+          <button className={styles.link} onClick={() => scrollToSection('popular')}>
             Objetos Populares
           </button>
-          <button
-            className={styles.link}
-            onClick={() => scrollToSection('use')}
-          >
+          <button className={styles.link} onClick={() => scrollToSection('use')}>
             Por Que Utilizar?
           </button>
-          <button
-            className={styles.link}
-            onClick={() => scrollToSection('highlight')}
-          >
+          <button className={styles.link} onClick={() => scrollToSection('highlight')}>
             Objetos em Destaque
           </button>
-          <button
-            className={styles.link}
-            onClick={() => scrollToSection('howWorks')}
-          >
+          <button className={styles.link} onClick={() => scrollToSection('howWorks')}>
             Como Funciona
           </button>
           {token ? (

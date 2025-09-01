@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import ObjectCard from '../components/ObjectCards';
 import BackTopButton from '../components/BackTopButton';
-import styles from '../components/Home.module.css';
 import AutoCarouselRow from '../components/AutoCarouselRow';
+import styles from '../components/Home.module.css';
 
 import blocksLeft from '../assets/blocksLeft.svg';
 import blocksRight from '../assets/blocksRight.svg';
@@ -13,9 +13,8 @@ import tabletBoy from '../assets/tabletBoy.png';
 const norm = (s) => String(s || '').trim().toLowerCase();
 
 const BAD_KEYWORDS = new Set([
-  'jogo', 'game', 'games', 'atividade', 'atividades', 'lesson', 'quiz', 'presentation',
-  'ppt', 'pptx', 'pptm', 'slide', 'slides',
-  '1', '2', '3', '4', '5'
+  'jogo','game','games','atividade','atividades','lesson','quiz','presentation',
+  'ppt','pptx','pptm','slide','slides','1','2','3','4','5'
 ]);
 
 const PT_CONTEXT = {
@@ -48,8 +47,9 @@ const shuffle = (arr) => {
 export default function Home() {
   const navigate = useNavigate();
   const [sp] = useSearchParams();
+  const { hash } = useLocation();
   const [query, setQuery] = useState(sp.get('q') || '');
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 767);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   const [popular, setPopular] = useState([]);
   const [latest, setLatest] = useState([]);
@@ -57,9 +57,9 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const onR = () => setIsMobile(window.innerWidth <= 767);
-    window.addEventListener('resize', onR);
-    return () => window.removeEventListener('resize', onR);
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
   const hasTitle = (o) => (o?.title || '').trim().length >= 1;
@@ -117,16 +117,37 @@ export default function Home() {
 
   const rankTop5 = (list) => {
     const sorted = [...list].sort((a, b) => {
+      const aC = Number(a.ratingCount || 0);
+      const bC = Number(b.ratingCount || 0);
+      const aHas = aC > 0, bHas = bC > 0;
+      if (bHas !== aHas) return bHas - aHas; 
       const ar = Number(a.ratingAvg || 0), br = Number(b.ratingAvg || 0);
-      if (br !== ar) return br - ar;
-      const ac = Number(a.ratingCount || 0), bc = Number(b.ratingCount || 0);
-      if (bc !== ac) return bc - ac;
+      if (br !== ar) return br - ar;        
+      if (bC !== aC) return bC - aC;        
       const ad = new Date(a.created_at || 0).getTime();
       const bd = new Date(b.created_at || 0).getTime();
-      return bd - ad;
+      return bd - ad;                       
     });
     return sorted.slice(0, Math.min(5, sorted.length));
   };
+
+  useEffect(() => {
+    const onFocus = async () => {
+      try {
+        const { data } = await api.get('/objetos', { params: { limit: 200, offset: 0 } });
+        const objs = Array.isArray(data?.objects) ? data.objects : [];
+        const valid = objs.filter(hasTitle);
+
+        setChips(buildChipsFromObjects(valid));
+
+      } catch (e) {
+        console.error('Erro ao atualizar chips ao focar a aba:', e);
+      }
+    };
+
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -148,13 +169,20 @@ export default function Home() {
         setLatest(random5);
         setChips(quickChips);
       } catch (e) {
-        console.error(e);
+        console.error('Erro ao buscar dados:', e);
       } finally {
         if (alive) setLoading(false);
       }
     })();
     return () => { alive = false; };
   }, []);
+
+  useEffect(() => {
+    if (!hash) return;
+    const id = hash.slice(1);
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [hash]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -170,10 +198,25 @@ export default function Home() {
     }
   };
 
+  const scrollToSection = (id) => {
+  const doScroll = () => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setOpen(false);
+  };
+
+  if (location.pathname !== '/') {
+      navigate('/', { replace: false });
+      requestAnimationFrame(() => requestAnimationFrame(doScroll));
+    } else {
+      doScroll();
+    }
+  };
+
   return (
-    <div id="hero">
-      <section className={styles.hero}>
-        <div className={styles.container}>
+    <div className={styles.pageContainer}>
+      <section id="hero" className={styles.hero}>
+        <div className={`${styles.sectionContainer} ${styles.heroContent}`}>
           <span className={styles.badge}>Biblioteca com dezenas de objetos educativos!</span>
           <h1 className={styles.title}>
             Aprenda Brincando com <span className={styles.highlight}>Objetos</span> Educacionais Interativos!
@@ -182,7 +225,7 @@ export default function Home() {
             Explore uma coleção de objetos interativos para reforçar o aprendizado de forma divertida.
           </p>
 
-        <form onSubmit={handleSearch} className={styles.search}>
+          <form onSubmit={handleSearch} className={styles.search}>
             <input
               type="text"
               placeholder="Pesquise por tema ou disciplina..."
@@ -197,136 +240,130 @@ export default function Home() {
         <div className={styles.rightImage}><img src={blocksRight} alt="" /></div>
       </section>
 
-      <section id="popular" className={`${styles.popularSection} ${styles.content}`}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Objetos Populares</h2>
-          <p className={styles.sectionSubtitle}>Encontre os objetos mais bem avaliados</p>
+      <section id="popular" className={`${styles.section} ${styles.sectionGray}`}>
+        <div className={styles.sectionContainer}>
+          <div className={styles.sectionHeader}>
+            <div>
+              <h2 className={styles.sectionTitle}>Objetos Populares</h2>
+              <p className={styles.sectionSubtitle}>Encontre os objetos mais bem avaliados pela comunidade.</p>
+            </div>
+            {!isMobile && <Link to="/search" className={styles.seeAllBtn}>Ver todos os objetos</Link>}
+          </div>
+
+          <nav className={styles.categoryNav}>
+            <div className={styles.categoryChips}>
+              {chips.map((chip, i) => (
+                <button
+                  key={`${chip.kind}:${chip.value}:${i}`}
+                  className={styles.categoryBtn}
+                  onClick={() => goWithChip(chip)}
+                  title={chip.kind === 'context'
+                    ? `Filtrar por contexto: ${chip.label}`
+                    : `Filtrar por palavra-chave: ${chip.label}`}
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+            {/* botão duplicado REMOVIDO aqui */}
+          </nav>
+
+          {loading ? (
+            <div className={styles.loading}>Carregando…</div>
+          ) : (
+            <div className={`${styles.objectsGrid} ${styles.carouselWrap}`}>
+              <AutoCarouselRow
+                items={popular}
+                speed={28}
+                gap={20}
+                dir="ltr"
+                minItemWidth={320}
+                renderItem={(obj) => <ObjectCard key={obj.id} obj={obj} />}
+              />
+            </div>
+          )}
+
+          {isMobile && <Link to="/search" className={styles.ctaMobile}>Ver todos os objetos</Link>}
         </div>
-
-        <nav className={styles.categoryNav}>
-          <div>
-            {chips.map((chip, i) => (
-              <button
-                key={`${chip.kind}-${chip.value}-${i}`}
-                className={styles.categoryBtn}
-                onClick={() => goWithChip(chip)}
-                title={chip.kind === 'context'
-                  ? `Filtrar por contexto: ${chip.label}`
-                  : `Filtrar por palavra-chave: ${chip.label}`}
-              >
-                {chip.label}
-              </button>
-            ))}
-          </div>
-          {!isMobile && <Link to="/search" className={styles.seeAllBtn}>Ver todos os objetos</Link>}
-        </nav>
-
-        {loading ? (
-          <div className={styles.loading}>Carregando…</div>
-        ) : (
-          <div className={styles.carouselWrap}>
-            <AutoCarouselRow
-              items={popular}
-              speed={28}
-              gap={20}
-              dir="ltr"
-              minItemWidth={320}
-              renderItem={(o) => <ObjectCard key={o.id} obj={o} />}
-            />
-          </div>
-        )}
-
-        {isMobile && <Link to="/search" className={`${styles.cta} ${styles.ctaMobile}`}>Ver todos os objetos</Link>}
       </section>
 
-      <section id="use" className="content">
-        <div className={styles.educationSection}>
-          <div className={styles.leftContent}>
-            <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>
-                Por Que Utilizar <span>Objetos</span> Educativos no Ensino?
-              </h2>
-              <p className={styles.sectionSubtitle}>
-                Explore uma coleção de objetos interativos para reforçar o aprendizado de forma divertida.
-              </p>
-            </div>
+      <section id="use" className={styles.section}>
+        <div className={`${styles.sectionContainer} ${styles.educationGrid}`}>
+          <div className={styles.educationTextContent}>
+            <h2 className={styles.sectionTitle}>Por Que Utilizar <span>Objetos</span> Educativos no Ensino?</h2>
+            <p className={styles.sectionSubtitle}>Explore uma coleção de objetos interativos para reforçar o aprendizado de forma divertida.</p>
             <ul className={styles.learnList}>
-              <li><span>1</span> Aprendizado Interativo – Torna o ensino mais envolvente e dinâmico.</li>
-              <li><span>2</span> Fácil de Usar – Basta abrir no PowerPoint e começar a jogar!</li>
-              <li><span>3</span> 100% Gratuito – Baixe e utilize sem custos.</li>
-              <li><span>4</span> Para Todas as Idades – Jogos para ensino fundamental e médio.</li>
+              <li><span>1</span> <strong>Aprendizado Interativo:</strong> Torna o ensino mais envolvente e dinâmico.</li>
+              <li><span>2</span> <strong>Fácil de Usar:</strong> Basta abrir no PowerPoint e começar a jogar!</li>
+              <li><span>3</span> <strong>100% Gratuito:</strong> Baixe e utilize sem custos para fins educacionais.</li>
+              <li><span>4</span> <strong>Para Todas as Idades:</strong> Jogos para ensino fundamental e médio.</li>
             </ul>
           </div>
-          <div className={styles.rightContent}>
-            <img src={tabletBoy} alt="Menino com tablet" className={styles.heroImage} />
+          <div className={styles.educationImageContainer}>
+            <img src={tabletBoy} alt="Menino utilizando um tablet para aprender" className={styles.educationImage} />
           </div>
         </div>
       </section>
 
-      <section id="highlight" className={`${styles.popularSection} ${styles.content}`}>
-        <div className={styles.sectionHeader} style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <div>
-            <h2 className={styles.sectionTitle}>Objetos em Destaque</h2>
-            <p className={styles.sectionSubtitle}>Seleção aleatória do acervo</p>
+      <section id="highlight" className={`${styles.section} ${styles.sectionGray}`}>
+        <div className={styles.sectionContainer}>
+          <div className={styles.sectionHeader}>
+            <div>
+              <h2 className={styles.sectionTitle}>Objetos em Destaque</h2>
+              <p className={styles.sectionSubtitle}>Seleção aleatória do acervo</p>
+            </div>
+            {!isMobile && <Link to="/search" className={styles.seeAllBtn}>Ver todos os objetos</Link>}
           </div>
-          {!isMobile && <Link to="/search" className={styles.seeAllBtn}>Ver todos os objetos</Link>}
+
+          {loading ? (
+            <div className={styles.loading}>Carregando…</div>
+          ) : (
+            <div className={`${styles.objectsGrid} ${styles.carouselWrap}`}>
+              <AutoCarouselRow
+                items={latest}
+                speed={24}
+                gap={20}
+                dir="rtl"
+                minItemWidth={320}
+                renderItem={(obj) => <ObjectCard key={obj.id} obj={obj} />}
+              />
+            </div>
+          )}
+
+          {isMobile && <Link to="/search" className={styles.ctaMobile}>Ver todos os objetos</Link>}
         </div>
-
-        {loading ? (
-          <div className={styles.loading}>Carregando…</div>
-        ) : (
-          <div className={styles.carouselWrap}>
-            <AutoCarouselRow
-              items={latest}
-              speed={24}
-              gap={20}
-              dir="rtl"
-              minItemWidth={320}
-              renderItem={(o) => <ObjectCard key={o.id} obj={o} />}
-            />
-          </div>
-        )}
-
-        {isMobile && <Link to="/search" className={`${styles.cta} ${styles.ctaMobile}`}>Ver todos os objetos</Link>}
       </section>
 
-      {/* COMO FUNCIONA */}
-      <section id="howWorks" className={`${styles.howItWorksSection} ${styles.content}`}>
-        <div className={styles.howItWorksContainer}>
+      <section id="howWorks" className={styles.section}>
+        <div className={`${styles.sectionContainer} ${styles.howItWorksGrid}`}>
           <div className={styles.howItWorksLeft}>
-            <h2 className={styles.howItWorksTitle}>Como Funciona?</h2>
-            <p className={styles.howItWorksSubtitle}>
-              Nosso processo é simples e direto para você começar a usar os
-              objetos educativos e tornar a aula muito mais interativa e divertida.
+            <h2 className={styles.sectionTitle}>Como Funciona?</h2>
+            <p className={styles.sectionSubtitle}>
+              Nosso processo é simples e direto para você começar a usar os objetos educativos e tornar a aula muito mais interativa.
             </p>
-            <button className={styles.howItWorksBtn}>Quero Começar!</button>
+            <button className={styles.howItWorksBtn} onClick={() => navigate('/search')}>Quero Começar!</button>
           </div>
 
-          <div className={styles.howItWorksRight}>
+          <div className={styles.stepsContainer}>
             <div className={styles.stepCard}>
               <div className={styles.stepNumber}>1</div>
               <div className={styles.stepContent}>
                 <h4>Explore os Objetos</h4>
-                <p>Escolha entre uma variedade de jogos educativos, com temas como geografia,
-                  matemática e ciências. Todos feitos para engajar os alunos.</p>
+                <p>Escolha entre uma variedade de jogos educativos, com temas como geografia, matemática e ciências.</p>
               </div>
             </div>
-
             <div className={styles.stepCard}>
               <div className={styles.stepNumber}>2</div>
               <div className={styles.stepContent}>
-                <h4>Baixe o Objeto</h4>
-                <p>Baixe o objeto de forma rápida e fácil, compatível com PowerPoint ou LibreOffice.
-                  Simples e sem complicações!</p>
+                <h4>Baixe o Arquivo</h4>
+                <p>Baixe o objeto de forma rápida, compatível com PowerPoint ou LibreOffice. Simples e sem complicações!</p>
               </div>
             </div>
-
             <div className={styles.stepCard}>
               <div className={styles.stepNumber}>3</div>
               <div className={styles.stepContent}>
                 <h4>Jogue e Aprenda</h4>
-                <p>Jogue com seus alunos de uso de forma individual. Aprendizado
-                  ativo e interativo com seus objetos.</p>
+                <p>Jogue com seus alunos de forma individual ou em grupo. Promova um aprendizado ativo e divertido.</p>
               </div>
             </div>
           </div>
