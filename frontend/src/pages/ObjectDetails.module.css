@@ -222,3 +222,18 @@
 
 .modalText{ margin: 0 0 16px; color: #0f172a; }
 .modalActions{ display: flex; gap: 12px; justify-content: flex-end; }
+
+.imageFrame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;              
+  background: linear-gradient(135deg,#5b4ae6 0%, #7c5cf5 100%);
+  aspect-ratio: 16 / 10;            
+}
+
+.imageFrame img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;               
+}

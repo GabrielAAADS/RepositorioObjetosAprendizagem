@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import ObjectCard from '../components/ObjectCards';
 import BackTopButton from '../components/BackTopButton';
@@ -9,11 +9,45 @@ import styles from '../components/Home.module.css';
 import blocksLeft from '../assets/blocksLeft.svg';
 import blocksRight from '../assets/blocksRight.svg';
 import tabletBoy from '../assets/tabletBoy.png';
-import { Import } from 'lucide-react';
+
+const norm = (s) => String(s || '').trim().toLowerCase();
+
+const BAD_KEYWORDS = new Set([
+  'jogo','game','games','atividade','atividades','lesson','quiz','presentation',
+  'ppt','pptx','pptm','slide','slides','1','2','3','4','5'
+]);
+
+const PT_CONTEXT = {
+  'primary education': 'Ensino Fundamental',
+  'primary': 'Ensino Fundamental',
+  'secondary education': 'Ensino Médio',
+  'secondary': 'Ensino Médio',
+  'higher education': 'Ensino Superior',
+  'higher-education': 'Ensino Superior',
+  'school': 'Escolar',
+  'university': 'Universidade',
+  'training': 'Treinamento',
+};
+
+const unique = (arr, keyFn = (x) => x) => {
+  const seen = new Set(); const out = [];
+  for (const v of arr) { const k = keyFn(v); if (!seen.has(k)) { seen.add(k); out.push(v); } }
+  return out;
+};
+
+const shuffle = (arr) => {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
 
 export default function Home() {
   const navigate = useNavigate();
   const [sp] = useSearchParams();
+  const { hash } = useLocation();
   const [query, setQuery] = useState(sp.get('q') || '');
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
@@ -28,38 +62,127 @@ export default function Home() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  const hasTitle = (o) => (o?.title || '').trim().length >= 1;
+
+  const buildChipsFromObjects = (objs = []) => {
+    const kwCount = new Map();
+    for (const o of objs) {
+      const gk = o?.metadata?.general?.keyword;
+      const ck = o?.metadata?.classification?.keyword;
+      const push = (val) => {
+        if (val == null) return;
+        const raw = String(val).trim();
+        const n = norm(raw);
+        if (!raw) return;
+        if (raw.length < 3) return;
+        if (/^\d+$/.test(raw)) return;
+        if (BAD_KEYWORDS.has(n)) return;
+        kwCount.set(n, (kwCount.get(n) || 0) + 1);
+      };
+      if (Array.isArray(gk)) gk.forEach(push); else push(gk);
+      if (Array.isArray(ck)) ck.forEach(push); else push(ck);
+    }
+    const kwChips = [...kwCount.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([n, count]) => ({
+        kind: 'keyword',
+        value: n,
+        label: n.charAt(0).toUpperCase() + n.slice(1),
+        count
+      }));
+
+    const ctxCount = new Map();
+    for (const o of objs) {
+      const ctx = o?.metadata?.educational?.context;
+      const arr = Array.isArray(ctx) ? ctx : (ctx ? [ctx] : []);
+      for (const c of arr) {
+        const n = norm(String(c).trim());
+        if (!n) continue;
+        ctxCount.set(n, (ctxCount.get(n) || 0) + 1);
+      }
+    }
+    const ctxChips = [...ctxCount.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([n, count]) => ({
+        kind: 'context',
+        value: n,
+        label: PT_CONTEXT[n] || (n.charAt(0).toUpperCase() + n.slice(1)),
+        count
+      }));
+
+    return unique([...kwChips, ...ctxChips], (x) => `${x.kind}:${x.value}`);
+  };
+
+  const rankTop5 = (list) => {
+    const sorted = [...list].sort((a, b) => {
+      const aC = Number(a.ratingCount || 0);
+      const bC = Number(b.ratingCount || 0);
+      const aHas = aC > 0, bHas = bC > 0;
+      if (bHas !== aHas) return bHas - aHas; 
+      const ar = Number(a.ratingAvg || 0), br = Number(b.ratingAvg || 0);
+      if (br !== ar) return br - ar;        
+      if (bC !== aC) return bC - aC;        
+      const ad = new Date(a.created_at || 0).getTime();
+      const bd = new Date(b.created_at || 0).getTime();
+      return bd - ad;                       
+    });
+    return sorted.slice(0, Math.min(5, sorted.length));
+  };
+
+  useEffect(() => {
+    const onFocus = async () => {
+      try {
+        const { data } = await api.get('/objetos', { params: { limit: 200, offset: 0 } });
+        const objs = Array.isArray(data?.objects) ? data.objects : [];
+        const valid = objs.filter(hasTitle);
+
+        setChips(buildChipsFromObjects(valid));
+
+      } catch (e) {
+        console.error('Erro ao atualizar chips ao focar a aba:', e);
+      }
+    };
+
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
+
   useEffect(() => {
     let alive = true;
-    const fetchData = async () => {
+    (async () => {
       setLoading(true);
       try {
-        const [oRes, fRes] = await Promise.all([
-          api.get('/objetos', { params: { limit: 48, offset: 0 } }),
-          api.get('/objetos/facets'),
-        ]);
+        const { data } = await api.get('/objetos', { params: { limit: 200, offset: 0 } });
+        const objs = Array.isArray(data?.objects) ? data.objects : [];
+        const valid = objs.filter(hasTitle);
+
+        const top5 = rankTop5(valid);
+
+        const random5 = shuffle(valid).slice(0, Math.min(5, valid.length));
+
+        const quickChips = buildChipsFromObjects(valid);
 
         if (!alive) return;
-
-        const objs = Array.isArray(oRes.data?.objects) ? oRes.data.objects : [];
-        const pop = [...objs].sort((a, b) => (b.ratingAvg || 0) - (a.ratingAvg || 0)).slice(0, 12);
-        const lat = [...objs].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 12);
-
-        const facets = fRes.data?.facets || {};
-        const keywords = (facets.keywords || []).sort((a, b) => b.count - a.count).slice(0, 6).map(x => x.value);
-        const contexts = (facets.context || []).sort((a, b) => b.count - a.count).slice(0, 4).map(x => x.value);
-
-        setPopular(pop);
-        setLatest(lat);
-        setChips([...keywords, ...contexts].slice(0, 10));
+        setPopular(top5);
+        setLatest(random5);
+        setChips(quickChips);
       } catch (e) {
-        console.error("Erro ao buscar dados:", e);
+        console.error('Erro ao buscar dados:', e);
       } finally {
         if (alive) setLoading(false);
       }
-    };
-    fetchData();
+    })();
     return () => { alive = false; };
   }, []);
+
+  useEffect(() => {
+    if (!hash) return;
+    const id = hash.slice(1);
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [hash]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -67,10 +190,32 @@ export default function Home() {
     navigate(term ? `/search?q=${encodeURIComponent(term)}` : '/search');
   };
 
+  const goWithChip = (chip) => {
+    if (chip.kind === 'context') {
+      navigate(`/search?context=${encodeURIComponent(chip.value)}`);
+    } else {
+      navigate(`/search?keyword=${encodeURIComponent(chip.value)}`);
+    }
+  };
+
+  const scrollToSection = (id) => {
+  const doScroll = () => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setOpen(false);
+  };
+
+  if (location.pathname !== '/') {
+      navigate('/', { replace: false });
+      requestAnimationFrame(() => requestAnimationFrame(doScroll));
+    } else {
+      doScroll();
+    }
+  };
+
   return (
     <div className={styles.pageContainer}>
-      {/* HERO */}
-      <section className={styles.hero}>
+      <section id="hero" className={styles.hero}>
         <div className={`${styles.sectionContainer} ${styles.heroContent}`}>
           <span className={styles.badge}>Biblioteca com dezenas de objetos educativos!</span>
           <h1 className={styles.title}>
@@ -79,6 +224,7 @@ export default function Home() {
           <p className={styles.subtitle}>
             Explore uma coleção de objetos interativos para reforçar o aprendizado de forma divertida.
           </p>
+
           <form onSubmit={handleSearch} className={styles.search}>
             <input
               type="text"
@@ -94,36 +240,54 @@ export default function Home() {
         <div className={styles.rightImage}><img src={blocksRight} alt="" /></div>
       </section>
 
-      {/* OBJETOS POPULARES */}
-      <section className={`${styles.section} ${styles.sectionGray}`}>
+      <section id="popular" className={`${styles.section} ${styles.sectionGray}`}>
         <div className={styles.sectionContainer}>
           <div className={styles.sectionHeader}>
             <div>
               <h2 className={styles.sectionTitle}>Objetos Populares</h2>
               <p className={styles.sectionSubtitle}>Encontre os objetos mais bem avaliados pela comunidade.</p>
             </div>
+            {!isMobile && <Link to="/search" className={styles.seeAllBtn}>Ver todos os objetos</Link>}
           </div>
+
           <nav className={styles.categoryNav}>
             <div className={styles.categoryChips}>
-              {chips.map((c, i) => (
-                <button key={`${c}-${i}`} className={styles.categoryBtn} onClick={() => navigate(`/search?q=${encodeURIComponent(c)}`)}>
-                  {c}
+              {chips.map((chip, i) => (
+                <button
+                  key={`${chip.kind}:${chip.value}:${i}`}
+                  className={styles.categoryBtn}
+                  onClick={() => goWithChip(chip)}
+                  title={chip.kind === 'context'
+                    ? `Filtrar por contexto: ${chip.label}`
+                    : `Filtrar por palavra-chave: ${chip.label}`}
+                >
+                  {chip.label}
                 </button>
               ))}
             </div>
-            {!isMobile && <Link to="/search" className={styles.seeAllBtn}>Ver todos os objetos</Link>}
+            {/* botão duplicado REMOVIDO aqui */}
           </nav>
-          {loading ? <div className={styles.loading}>Carregando…</div> : (
-            <div className={styles.objectsGrid}>
-              <AutoCarouselRow items={popular} speed={28} gap={20} dir="ltr" minItemWidth={320} renderItem={(obj) => <ObjectCard key={obj.id} object={obj} />} />
+
+          {loading ? (
+            <div className={styles.loading}>Carregando…</div>
+          ) : (
+            <div className={`${styles.objectsGrid} ${styles.carouselWrap}`}>
+              <AutoCarouselRow
+                items={popular}
+                speed={28}
+                gap={20}
+                dir="ltr"
+                minItemWidth={320}
+                renderItem={(obj) => <ObjectCard key={obj.id} obj={obj} />}
+              />
             </div>
           )}
+
           {isMobile && <Link to="/search" className={styles.ctaMobile}>Ver todos os objetos</Link>}
         </div>
       </section>
 
-      {/* POR QUE UTILIZAR? */}
-      <section className={styles.section}>
+      <section id="use" className={styles.section}>
         <div className={`${styles.sectionContainer} ${styles.educationGrid}`}>
           <div className={styles.educationTextContent}>
             <h2 className={styles.sectionTitle}>Por Que Utilizar <span>Objetos</span> Educativos no Ensino?</h2>
@@ -141,33 +305,45 @@ export default function Home() {
         </div>
       </section>
 
-      {/* OBJETOS EM DESTAQUE */}
-      <section className={`${styles.section} ${styles.sectionGray}`}>
+      <section id="highlight" className={`${styles.section} ${styles.sectionGray}`}>
         <div className={styles.sectionContainer}>
           <div className={styles.sectionHeader}>
             <div>
               <h2 className={styles.sectionTitle}>Objetos em Destaque</h2>
-              <p className={styles.sectionSubtitle}>Os mais recentes do nosso acervo.</p>
+              <p className={styles.sectionSubtitle}>Seleção aleatória do acervo</p>
             </div>
             {!isMobile && <Link to="/search" className={styles.seeAllBtn}>Ver todos os objetos</Link>}
           </div>
-          {loading ? <div className={styles.loading}>Carregando…</div> : (
-            <div className={styles.objectsGrid}>
-              <AutoCarouselRow items={latest} speed={24} gap={20} dir="rtl" minItemWidth={320} renderItem={(obj) => <ObjectCard key={obj.id} object={obj} />} />
+
+          {loading ? (
+            <div className={styles.loading}>Carregando…</div>
+          ) : (
+            <div className={`${styles.objectsGrid} ${styles.carouselWrap}`}>
+              <AutoCarouselRow
+                items={latest}
+                speed={24}
+                gap={20}
+                dir="rtl"
+                minItemWidth={320}
+                renderItem={(obj) => <ObjectCard key={obj.id} obj={obj} />}
+              />
             </div>
           )}
+
           {isMobile && <Link to="/search" className={styles.ctaMobile}>Ver todos os objetos</Link>}
         </div>
       </section>
 
-      {/* COMO FUNCIONA? */}
-      <section className={styles.section}>
+      <section id="howWorks" className={styles.section}>
         <div className={`${styles.sectionContainer} ${styles.howItWorksGrid}`}>
           <div className={styles.howItWorksLeft}>
             <h2 className={styles.sectionTitle}>Como Funciona?</h2>
-            <p className={styles.sectionSubtitle}>Nosso processo é simples e direto para você começar a usar os objetos educativos e tornar a aula muito mais interativa.</p>
+            <p className={styles.sectionSubtitle}>
+              Nosso processo é simples e direto para você começar a usar os objetos educativos e tornar a aula muito mais interativa.
+            </p>
             <button className={styles.howItWorksBtn} onClick={() => navigate('/search')}>Quero Começar!</button>
           </div>
+
           <div className={styles.stepsContainer}>
             <div className={styles.stepCard}>
               <div className={styles.stepNumber}>1</div>

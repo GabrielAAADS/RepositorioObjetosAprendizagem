@@ -8,6 +8,17 @@ import ConfirmDownload from '../components/ConfirmDownload';
 import css from './ObjectDetails.module.css';
 import { createPortal } from 'react-dom';
 
+const FALLBACK_SVG = (() => {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5b4ae6"/><stop offset="100%" stop-color="#7c5cf5"/>
+    </linearGradient></defs>
+    <rect width="800" height="500" fill="url(#g)"/>
+    <g fill="white" opacity="0.14"><circle cx="120" cy="120" r="80"/><circle cx="700" cy="420" r="60"/></g>
+  </svg>`;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+})();
+
 function ConfirmModal({ text, onCancel, onConfirm }) {
   return createPortal(
     <div
@@ -68,7 +79,9 @@ const norm = (s) => String(s ?? '').trim().toLowerCase();
 const labelOf = (group, value) => {
   if (value == null || value === '') return '—';
   const v = norm(value);
-  if (group === 'language' || group === 'eduLanguage') return LANG_PT[v] || String(value);
+  if (group === 'language' || group === 'eduLanguage') {
+    return LANG_PT[v] || String(value);
+  }
   return MAP[group]?.[v] ?? String(value);
 };
 const parseIsoMins = (iso) => {
@@ -91,12 +104,10 @@ export default function ObjectDetails() {
   const [myVersion, setMyVersion] = useState('');
   const [tab, setTab] = useState('geral');
 
-  // histórico do usuário (escadinha)
   const [myList, setMyList] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const [confirmUpdate, setConfirmUpdate] = useState(false);
 
-  // comunidade (scroll infinito)
   const COMM_LIMIT = 20;
   const [commItems, setCommItems] = useState([]);
   const [commTotal, setCommTotal] = useState(0);
@@ -114,7 +125,7 @@ export default function ObjectDetails() {
 
   const keywords = useMemo(() => {
     const k = obj?.metadata?.general?.keyword || [];
-    return Array.isArray(k) ? k : [];
+    return Array.isArray(k) ? k : (k ? [k] : []);
   }, [obj]);
 
   useEffect(() => {
@@ -122,7 +133,7 @@ export default function ObjectDetails() {
     (async () => {
       try {
         const { data } = await api.get(`/objetos/${id}`);
-        if (alive) setObj(data?.object);
+        if (alive) setObj({ ...(data?.object || null), metadata: data?.metadata || null });
         const rs = await ratings.fetchCurrent({ objectId: id });
         if (alive) setRat(rs);
       } catch (e) {
@@ -200,7 +211,14 @@ export default function ObjectDetails() {
     [rat, myList]
   );
 
-  const thumb = obj?.metadata?.general?.thumbnail || obj?.metadata?.technical?.location?.[0] || '/placeholder.jpg';
+  const thumb = useMemo(() => {
+    const m = obj?.metadata;
+    const genThumb = m?.general?.thumbnail;
+    const loc = m?.technical?.location;
+    const locStr = Array.isArray(loc) ? loc?.[0] : (typeof loc === 'string' ? loc : null);
+    return genThumb || locStr || FALLBACK_SVG;
+  }, [obj]);
+
   const fileNameForUi = (() => {
     const title = obj?.title?.trim() || 'objeto';
     const fromPath = (obj?.file_path || '').split('?')[0];
@@ -217,7 +235,7 @@ export default function ObjectDetails() {
       'application/vnd.ms-powerpoint.presentation.macroEnabled.12': 'PPTM',
       'application/vnd.ms-powerpoint': 'PPT',
     };
-    return map[fmt] || (fmt ? fmt.split('/').pop()?.toUpperCase() : '—');
+    return map?.[fmt] || (fmt ? fmt.split('/').pop()?.toUpperCase() : '—');
   })();
 
   const sizeText = (() => {
@@ -240,7 +258,7 @@ export default function ObjectDetails() {
   const adv = {
     geral: {
       'Idioma': labelOf('language', m?.general?.language),
-      'Palavras-chave': (Array.isArray(m?.general?.keyword) ? m.general.keyword : []).join(', ') || '—',
+      'Palavras-chave': (Array.isArray(m?.general?.keyword) ? m.general.keyword : (m?.general?.keyword ? [m.general.keyword] : [])).join(', ') || '—',
       'Thumbnail': m?.general?.thumbnail ? 'Sim' : '—',
       'Descrição': desc || '—',
     },
@@ -275,7 +293,7 @@ export default function ObjectDetails() {
     classificacao: {
       'Propósito': m?.classification?.purpose || '—',
       'Descrição': m?.classification?.description || '—',
-      'Palavras-chave (classificação)': (Array.isArray(m?.classification?.keyword) ? m.classification.keyword : []).join(', ') || '—',
+      'Palavras-chave (classificação)': (Array.isArray(m?.classification?.keyword) ? m.classification.keyword : (m?.classification?.keyword ? [m.classification.keyword] : [])).join(', ') || '—',
     },
   };
 
@@ -313,11 +331,26 @@ export default function ObjectDetails() {
 
         <div className={css.cardBody}>
           <div className={css.imageFrame}>
-            <img src={thumb} alt="" />
+            <img
+              src={thumb}
+              alt=""
+              onError={(e) => {
+                const img = e.currentTarget;
+                if (img.src !== FALLBACK_SVG) img.src = FALLBACK_SVG;
+              }}
+            />
           </div>
 
           <div className={css.infoCol}>
-            <div className={css.ratingRow}>
+            <div
+              className={css.ratingRow}
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate(`/objects/${id}/ratings`)}
+              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && navigate(`/objects/${id}/ratings`)}
+              title="Abrir página de avaliações"
+              style={{ cursor: 'pointer' }}
+            >
               <StarRating value={Number(rat.avg || obj?.ratingAvg || 0)} readOnly />
               <span className={css.ratingText}>
                 {Number((rat.avg || obj?.ratingAvg || 0)).toFixed(1)} ({rat.count || obj?.ratingCount || 0})
@@ -390,139 +423,6 @@ export default function ObjectDetails() {
           </div>
         </div>
       </div>
-
-      <section className={css.reviews}>
-        <h2 className={css.h2}>Avaliações</h2>
-
-        <div className={css.reviewsGrid}>
-          <div className={css.panel}>
-            <h3 className={css.h3}>Sua avaliação</h3>
-
-            {myCurrent ? (
-              <div className={css.myCurrent}>
-                <StarRating value={myCurrent.stars} readOnly size={16} />
-                <span className={css.reviewMeta}>
-                  {myCurrent.version ? `v${myCurrent.version} • ` : ''}
-                  {new Date(myCurrent.created_at).toLocaleString()}
-                </span>
-                {myCurrent.comment && <p className={css.reviewText}>{myCurrent.comment}</p>}
-              </div>
-            ) : (
-              <p className={css.muted}>Você ainda não avaliou este objeto.</p>
-            )}
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!myStars) { alert('Dê uma nota de 1 a 5.'); return; }
-                if (myCurrent) { setConfirmUpdate(true); return; }
-                doSubmit();
-              }}
-              className={css.rateForm}
-            >
-              <label className={css.rateRow}>
-                Sua nota: <StarRating value={myStars} onChange={setMyStars} />
-              </label>
-              <input
-                placeholder="Versão (opcional)"
-                value={myVersion}
-                onChange={(e) => setMyVersion(e.target.value)}
-                className={css.input}
-              />
-              <textarea
-                placeholder="Escreva um comentário (opcional)"
-                value={myComment}
-                onChange={(e) => setMyComment(e.target.value)}
-                className={`${css.input} ${css.textarea}`}
-                rows={4}
-              />
-              <button className={home.cta} type="submit" disabled={confirmUpdate}>Enviar avaliação</button>
-            </form>
-
-            <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:12 }}>
-              <button
-                className={css.linkPrimary}
-                style={{ background:'none', border:0, padding:0, cursor:'pointer' }}
-                onClick={() => setShowHistory((s) => !s)}
-              >
-                {showHistory ? 'Ocultar histórico' : 'Mostrar histórico'}
-              </button>
-              {hist.length > 0 && (
-                <Link to={`/objects/${id}/ratings`} className={css.linkPrimary}>
-                  Ver histórico completo
-                </Link>
-              )}
-            </div>
-
-            {showHistory && (
-              <>
-                <h3 className={css.h3} style={{ marginTop: 8 }}>Seu histórico</h3>
-                {hist.length === 0 ? (
-                  <p className={css.muted}>Você ainda não avaliou este objeto.</p>
-                ) : (
-                  <div className={css.stair}>
-                    {hist.map((r, i) => (
-                      <div key={r.id} className={css.stairItem} style={{ marginLeft: i * 12 }}>
-                        <div className={css.reviewHead}>
-                          <StarRating value={r.stars} readOnly size={16} />
-                          <span className={css.reviewMeta}>
-                            {r.version ? `v${r.version} • ` : ''}{new Date(r.created_at).toLocaleString()}
-                          </span>
-                        </div>
-                        {r.comment && <p className={css.reviewText}>{r.comment}</p>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-
-          <div className={css.panel}>
-            <h3 className={css.h3}>Avaliações da comunidade</h3>
-            <div className={css.communityList}>
-              {commItems.length === 0 && !commLoading ? (
-                <p className={css.muted}>Ainda não há avaliações.</p>
-              ) : (
-                <>
-                  {commItems.map((r) => (
-                    <div key={r.id} className={css.reviewItem}>
-                      <div className={css.reviewHead}>
-                        <StarRating value={r.stars} readOnly size={16} />
-                        <span className={css.reviewMeta}>
-                          {r.version ? `v${r.version} • ` : ''}
-                          {new Date(r.created_at).toLocaleString()}
-                        </span>
-                      </div>
-                      {r.comment && <p className={css.reviewText}>{r.comment}</p>}
-                    </div>
-                  ))}
-
-                  {commLoading && <p className={css.muted}>Carregando…</p>}
-
-                  <div ref={sentinelRef} />
-
-                  {commItems.length < commTotal && !commLoading && (
-                    <div style={{ display:'flex', justifyContent:'center', marginTop:12 }}>
-                      <button className={home.cta} onClick={() => loadMoreCommunity(false)}>
-                        Carregar mais
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {confirmUpdate && (
-          <ConfirmModal
-            text="Você já avaliou este objeto. Quer atualizar sua avaliação? A nota e a descrição substituirão a atual."
-            onCancel={() => setConfirmUpdate(false)}
-            onConfirm={() => { setConfirmUpdate(false); doSubmit(); }}
-          />
-        )}
-      </section>
     </div>
   );
 }
