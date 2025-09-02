@@ -7,7 +7,7 @@ export default function SiteFooter() {
         <div className={styles.content}>
           <div className={styles.brand}>
             <div className={styles.logo}>
-              <img src="logo.svg" alt="Logo" />
+              <img src="/logo.svg" alt="Logo" />
             </div>
             <p className={styles.brandDescription}>
               Facilitando o Aprendizado Com Objetos Digitais

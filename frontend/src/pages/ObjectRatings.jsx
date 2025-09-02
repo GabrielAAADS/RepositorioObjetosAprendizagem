@@ -17,13 +17,17 @@ function ConfirmModal({ text, onCancel, onConfirm }) {
       tabIndex={-1}
     >
       <div className={css.modalCard}>
+        <div className={css.modalHeader}>
+          <h3 className={css.modalTitle}>Confirmar Atualização</h3>
+        </div>
         <p className={css.modalText}>{text}</p>
         <div className={css.modalActions}>
-          <button className={home.cta} onClick={onConfirm}>Atualizar</button>
+          <button className={`${home.cta} ${css.confirmBtn}`} onClick={onConfirm}>
+            Atualizar
+          </button>
           <button
-            className={home.cta}
+            className={`${home.cta} ${css.cancelBtn}`}
             onClick={onCancel}
-            style={{ background:'#fff', color:'var(--primary)', border:'1px solid var(--primary)' }}
           >
             Cancelar
           </button>
@@ -145,34 +149,70 @@ export default function ObjectRatings() {
     setMyStars(0); setMyComment(''); setMyVersion('');
   }
 
-  if (loading) return <div className={home.loading}>Carregando…</div>;
+  if (loading) return <div className={css.loadingContainer}>
+    <div className={css.loadingSpinner}></div>
+    <p>Carregando avaliações...</p>
+  </div>;
 
   return (
     <div className={css.container}>
-      <div className={css.card} style={{ paddingBottom: 16 }}>
+    
+      <div className={css.headerCard}>
         <div className={css.cardTopBar} />
-        <div className={css.cardHeader}>
-          <span className={`${home.cardBadge} ${css.badge}`}>{(obj?.category || 'JOGO').toUpperCase()}</span>
-          <h1 className={css.title}>Avaliações — {obj?.title || `Objeto #${id}`}</h1>
+        <div className={css.headerContent}>
+          <div className={css.headerMeta}>
+            <span className={css.categoryBadge}>
+              {(obj?.category || 'JOGO').toUpperCase()}
+            </span>
+            {rat.avg > 0 && (
+              <div className={css.overallRating}>
+                <StarRating value={rat.avg} readOnly size={18} />
+                <span className={css.ratingStats}>
+                  {rat.avg.toFixed(1)} ({rat.count} {rat.count === 1 ? 'avaliação' : 'avaliações'})
+                </span>
+              </div>
+            )}
+          </div>
+          <h1 className={css.pageTitle}>
+            Avaliações — {obj?.title || `Objeto #${id}`}
+          </h1>
         </div>
       </div>
 
-      <section className={css.reviews} style={{ marginTop: 0 }}>
-        <div className={css.reviewsGrid}>
-          <div className={css.panel}>
-            <h3 className={css.h3}>Sua avaliação</h3>
+      <div className={css.ratingsLayout}>
+        
+        <div className={css.userPanel}>
+          <div className={css.panelCard}>
+            <div className={css.panelHeader}>
+              <h2 className={css.panelTitle}>Sua Avaliação</h2>
+            </div>
 
             {myCurrent ? (
-              <div className={css.myCurrent}>
-                <StarRating value={myCurrent.stars} readOnly size={16} />
-                <span className={css.reviewMeta}>
-                  {myCurrent.version ? `v${myCurrent.version} • ` : ''}
-                  {new Date(myCurrent.created_at).toLocaleString()}
-                </span>
-                {myCurrent.comment && <p className={css.reviewText}>{myCurrent.comment}</p>}
+              <div className={css.currentRating}>
+                <div className={css.ratingDisplay}>
+                  <StarRating value={myCurrent.stars} readOnly size={20} />
+                  <span className={css.ratingValue}>{myCurrent.stars}/5</span>
+                </div>
+                <div className={css.ratingMeta}>
+                  {myCurrent.version && (
+                    <span className={css.versionTag}>v{myCurrent.version}</span>
+                  )}
+                  <span className={css.dateText}>
+                    {new Date(myCurrent.created_at).toLocaleDateString('pt-BR')}
+                  </span>
+                </div>
+                {myCurrent.comment && (
+                  <div className={css.commentBox}>
+                    <p className={css.commentText}>{myCurrent.comment}</p>
+                  </div>
+                )}
               </div>
             ) : (
-              <p className={css.muted}>Você ainda não avaliou este objeto.</p>
+              <div className={css.noRating}>
+                <div className={css.noRatingIcon}>⭐</div>
+                <p className={css.noRatingText}>Você ainda não avaliou este objeto</p>
+                <p className={css.noRatingSubtext}>Seja o primeiro a compartilhar sua opinião!</p>
+              </div>
             )}
 
             <form
@@ -182,99 +222,157 @@ export default function ObjectRatings() {
                 if (myCurrent) { setConfirmUpdate(true); return; }
                 doSubmit();
               }}
-              className={css.rateForm}
+              className={css.ratingForm}
             >
-              <label className={css.rateRow}>
-                Sua nota: <StarRating value={myStars} onChange={setMyStars} />
-              </label>
-              <input
-                placeholder="Versão (opcional)"
-                value={myVersion}
-                onChange={(e) => setMyVersion(e.target.value)}
-                className={css.input}
-              />
-              <textarea
-                placeholder="Escreva um comentário (opcional)"
-                value={myComment}
-                onChange={(e) => setMyComment(e.target.value)}
-                className={`${css.input} ${css.textarea}`}
-                rows={4}
-              />
-              <button className={home.cta} type="submit" disabled={confirmUpdate}>
-                Enviar avaliação
+              <div className={css.formSection}>
+                <label className={css.formLabel}>Sua nota</label>
+                <div className={css.starsInput}>
+                  <StarRating value={myStars} onChange={setMyStars} size={28} />
+                  {myStars > 0 && <span className={css.starValue}>{myStars}/5</span>}
+                </div>
+              </div>
+
+              <div className={css.formSection}>
+                <label className={css.formLabel}>Versão (opcional)</label>
+                <input
+                  placeholder="Ex: 1.0, 2.5, beta..."
+                  value={myVersion}
+                  onChange={(e) => setMyVersion(e.target.value)}
+                  className={css.formInput}
+                />
+              </div>
+
+              <div className={css.formSection}>
+                <label className={css.formLabel}>Comentário (opcional)</label>
+                <textarea
+                  placeholder="Compartilhe sua experiência com este objeto..."
+                  value={myComment}
+                  onChange={(e) => setMyComment(e.target.value)}
+                  className={css.formTextarea}
+                  rows={4}
+                />
+              </div>
+
+              <button 
+                className={css.submitBtn} 
+                type="submit" 
+                disabled={confirmUpdate}
+              >
+                {myCurrent ? 'Atualizar Avaliação' : 'Enviar Avaliação'}
               </button>
             </form>
 
-            <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:12 }}>
+            <div className={css.panelActions}>
               <button
-                className={css.linkPrimary}
-                style={{ background:'none', border:0, padding:0, cursor:'pointer' }}
+                className={css.historyToggle}
                 onClick={() => setShowHistory((s) => !s)}
               >
-                {showHistory ? 'Ocultar histórico' : 'Mostrar histórico'}
+                {showHistory ? '📋 Ocultar histórico' : '📋 Ver histórico'}
               </button>
-
               <button
-                className={home.cta}
+                className={css.backBtn}
                 onClick={() => navigate(-1)}
-                style={{ padding: '8px 14px' }}
                 title="Voltar"
               >
-                Voltar
+                ← Voltar
               </button>
             </div>
 
             {showHistory && (
-              <>
-                <h3 className={css.h3} style={{ marginTop: 8 }}>Seu histórico</h3>
+              <div className={css.historySection}>
+                <h3 className={css.historyTitle}>Seu Histórico</h3>
                 {hist.length === 0 ? (
-                  <p className={css.muted}>Você ainda não avaliou este objeto.</p>
+                  <p className={css.emptyState}>Nenhuma avaliação encontrada</p>
                 ) : (
-                  <div className={css.stair}>
+                  <div className={css.historyList}>
                     {hist.map((r, i) => (
-                      <div key={r.id} className={css.stairItem} style={{ marginLeft: i * 12 }}>
-                        <div className={css.reviewHead}>
+                      <div key={r.id} className={css.historyItem}>
+                        <div className={css.historyHeader}>
                           <StarRating value={r.stars} readOnly size={16} />
-                          <span className={css.reviewMeta}>
-                            {r.version ? `v${r.version} • ` : ''}{new Date(r.created_at).toLocaleString()}
-                          </span>
+                          <div className={css.historyMeta}>
+                            {r.version && (
+                              <span className={css.versionTag}>v{r.version}</span>
+                            )}
+                            <span className={css.dateText}>
+                              {new Date(r.created_at).toLocaleDateString('pt-BR')}
+                            </span>
+                          </div>
                         </div>
-                        {r.comment && <p className={css.reviewText}>{r.comment}</p>}
+                        {r.comment && (
+                          <p className={css.historyComment}>{r.comment}</p>
+                        )}
                       </div>
                     ))}
                   </div>
                 )}
-              </>
+              </div>
             )}
           </div>
+        </div>
 
-          <div className={css.panel}>
-            <h3 className={css.h3}>Avaliações da comunidade</h3>
-            <div className={css.communityList}>
+        
+        <div className={css.communityPanel}>
+          <div className={css.panelCard}>
+            <div className={css.panelHeader}>
+              <h2 className={css.panelTitle}>Avaliações da Comunidade</h2>
+              {rat.count > 0 && (
+                <span className={css.communityCount}>
+                  {rat.count} {rat.count === 1 ? 'avaliação' : 'avaliações'}
+                </span>
+              )}
+            </div>
+
+            <div className={css.communityContent}>
               {commItems.length === 0 && !commLoading ? (
-                <p className={css.muted}>Ainda não há avaliações.</p>
+                <div className={css.emptyState}>
+                  <div className={css.emptyIcon}>💬</div>
+                  <p className={css.emptyText}>Ainda não há avaliações</p>
+                  <p className={css.emptySubtext}>Seja o primeiro a avaliar este objeto!</p>
+                </div>
               ) : (
                 <>
-                  {commItems.map((r) => (
-                    <div key={r.id} className={css.reviewItem}>
-                      <div className={css.reviewHead}>
-                        <StarRating value={r.stars} readOnly size={16} />
-                        <span className={css.reviewMeta}>
-                          {r.version ? `v${r.version} • ` : ''}
-                          {new Date(r.created_at).toLocaleString()}
-                        </span>
+                  <div className={css.reviewsList}>
+                    {commItems.map((r) => (
+                      <div key={r.id} className={css.reviewCard}>
+                        <div className={css.reviewHeader}>
+                          <div className={css.reviewRating}>
+                            <StarRating value={r.stars} readOnly size={16} />
+                            <span className={css.ratingNumber}>{r.stars}/5</span>
+                          </div>
+                          <div className={css.reviewMeta}>
+                            {r.version && (
+                              <span className={css.versionTag}>v{r.version}</span>
+                            )}
+                            <span className={css.dateText}>
+                              {new Date(r.created_at).toLocaleDateString('pt-BR')}
+                            </span>
+                          </div>
+                        </div>
+                        {r.comment && (
+                          <div className={css.reviewBody}>
+                            <p className={css.reviewText}>{r.comment}</p>
+                          </div>
+                        )}
                       </div>
-                      {r.comment && <p className={css.reviewText}>{r.comment}</p>}
-                    </div>
-                  ))}
+                    ))}
+                  </div>
 
-                  {commLoading && <p className={css.muted}>Carregando…</p>}
+                  {commLoading && (
+                    <div className={css.loadingMore}>
+                      <div className={css.loadingSpinner}></div>
+                      <span>Carregando mais avaliações...</span>
+                    </div>
+                  )}
+
                   <div ref={sentinelRef} />
 
                   {commItems.length < commTotal && !commLoading && (
-                    <div style={{ display:'flex', justifyContent:'center', marginTop:12 }}>
-                      <button className={home.cta} onClick={() => loadMoreCommunity(false)}>
-                        Carregar mais
+                    <div className={css.loadMoreContainer}>
+                      <button 
+                        className={css.loadMoreBtn} 
+                        onClick={() => loadMoreCommunity(false)}
+                      >
+                        Carregar mais avaliações
                       </button>
                     </div>
                   )}
@@ -283,15 +381,15 @@ export default function ObjectRatings() {
             </div>
           </div>
         </div>
+      </div>
 
-        {confirmUpdate && (
-          <ConfirmModal
-            text="Você já avaliou este objeto. Quer atualizar sua avaliação? A nota e a descrição substituirão a atual."
-            onCancel={() => setConfirmUpdate(false)}
-            onConfirm={() => { setConfirmUpdate(false); doSubmit(); }}
-          />
-        )}
-      </section>
+      {confirmUpdate && (
+        <ConfirmModal
+          text="Você já avaliou este objeto. Quer atualizar sua avaliação? A nota e o comentário substituirão a avaliação atual."
+          onCancel={() => setConfirmUpdate(false)}
+          onConfirm={() => { setConfirmUpdate(false); doSubmit(); }}
+        />
+      )}
     </div>
   );
 }

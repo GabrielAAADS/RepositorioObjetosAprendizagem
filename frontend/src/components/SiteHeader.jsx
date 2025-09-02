@@ -40,7 +40,7 @@ export default function SiteHeader() {
         </button>
 
         <Link to="/" className={styles.logo}>
-          <img src="logoShield.svg" alt="GAMERED" className={styles.logoImg} />
+          <img src="/logoShield.svg" alt="Logo" className={styles.logoImg} />
           <span className={styles.logoText}>GAMERED</span>
         </Link>
 

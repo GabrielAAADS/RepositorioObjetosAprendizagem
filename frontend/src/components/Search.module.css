@@ -1,7 +1,8 @@
 .wrap {
   display: grid;
-  grid-template-columns: 300px 1fr;
+  grid-template-columns: 280px 1fr;
   gap: 24px;
+  padding: 2rem;
 }
 
 @media (max-width: 992px) {
@@ -99,7 +100,7 @@
 }
 
 .searchBar {
-  /* usa a mesma barra da Home */
+  
   display: flex;
   justify-content: center;
   max-width: 720px;
