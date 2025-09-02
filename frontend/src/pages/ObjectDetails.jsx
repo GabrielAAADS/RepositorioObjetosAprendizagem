@@ -5,7 +5,7 @@ import StarRating from '../components/StarRating';
 import home from '../components/Home.module.css';
 import * as ratings from '../services/ratings';
 import ConfirmDownload from '../components/ConfirmDownload';
-import css from './ObjectDetails.module.css';
+import css from '../components/ObjectDetails.module.css';
 import { createPortal } from 'react-dom';
 
 const FALLBACK_SVG = (() => {
@@ -29,13 +29,17 @@ function ConfirmModal({ text, onCancel, onConfirm }) {
       tabIndex={-1}
     >
       <div className={css.modalCard}>
+        <div className={css.modalHeader}>
+          <h3 className={css.modalTitle}>Confirmar Ação</h3>
+        </div>
         <p className={css.modalText}>{text}</p>
         <div className={css.modalActions}>
-          <button className={home.cta} onClick={onConfirm}>Atualizar</button>
+          <button className={`${home.cta} ${css.confirmBtn}`} onClick={onConfirm}>
+            Confirmar
+          </button>
           <button
-            className={home.cta}
+            className={`${home.cta} ${css.cancelBtn}`}
             onClick={onCancel}
-            style={{ background:'#fff', color:'var(--primary)', border:'1px solid var(--primary)' }}
           >
             Cancelar
           </button>
@@ -317,67 +321,120 @@ export default function ObjectDetails() {
     }
   }
 
-  if (loading) return <div className={home.loading}>Carregando…</div>;
-  if (!obj)    return <div className={home.error}>Objeto não encontrado.</div>;
+  if (loading) return (
+    <div className={css.loadingContainer}>
+      <div className={css.loadingSpinner}></div>
+      <p>Carregando objeto...</p>
+    </div>
+  );
+
+  if (!obj) return (
+    <div className={css.errorContainer}>
+      <div className={css.errorIcon}>⚠️</div>
+      <h2 className={css.errorTitle}>Objeto não encontrado</h2>
+      <p className={css.errorMessage}>O objeto solicitado não existe ou não está disponível.</p>
+      <button className={css.errorButton} onClick={() => navigate('/search')}>
+        Voltar à busca
+      </button>
+    </div>
+  );
 
   return (
     <div className={css.container}>
-      <div className={css.card}>
+      {/* Main Object Card */}
+      <div className={css.objectCard}>
         <div className={css.cardTopBar} />
-        <div className={css.cardHeader}>
-          <span className={`${home.cardBadge} ${css.badge}`}>{(obj?.category || 'JOGO').toUpperCase()}</span>
-          <h1 className={css.title}>{obj?.title}</h1>
+        
+        <div className={css.objectHeader}>
+          <div className={css.headerTop}>
+            <span className={css.categoryBadge}>
+              {(obj?.category || 'JOGO').toUpperCase()}
+            </span>
+          </div>
+          <div className={css.headerMain}>
+            <h1 className={css.objectTitle}>{obj?.title}</h1>
+          </div>
         </div>
 
-        <div className={css.cardBody}>
-          <div className={css.imageFrame}>
-            <img
-              src={thumb}
-              alt=""
-              onError={(e) => {
-                const img = e.currentTarget;
-                if (img.src !== FALLBACK_SVG) img.src = FALLBACK_SVG;
-              }}
-            />
+        <div className={css.objectBody}>
+          <div className={css.imageSection}>
+            <div className={css.imageFrame}>
+              <img
+                src={thumb}
+                alt={obj?.title || 'Preview do objeto'}
+                onError={(e) => {
+                  const img = e.currentTarget;
+                  if (img.src !== FALLBACK_SVG) img.src = FALLBACK_SVG;
+                }}
+              />
+            </div>
           </div>
 
-          <div className={css.infoCol}>
+          <div className={css.infoSection}>
             <div
-              className={css.ratingRow}
+              className={css.ratingClickable}
               role="button"
               tabIndex={0}
               onClick={() => navigate(`/objects/${id}/ratings`)}
               onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && navigate(`/objects/${id}/ratings`)}
-              title="Abrir página de avaliações"
-              style={{ cursor: 'pointer' }}
+              title="Ver todas as avaliações"
             >
-              <StarRating value={Number(rat.avg || obj?.ratingAvg || 0)} readOnly />
+              <StarRating value={Number(rat.avg || obj?.ratingAvg || 0)} readOnly size={20} />
               <span className={css.ratingText}>
-                {Number((rat.avg || obj?.ratingAvg || 0)).toFixed(1)} ({rat.count || obj?.ratingCount || 0})
+                {Number((rat.avg || obj?.ratingAvg || 0)).toFixed(1)}
+              </span>
+              <span className={css.ratingCount}>
+                ({rat.count || obj?.ratingCount || 0} {(rat.count || obj?.ratingCount || 0) === 1 ? 'avaliação' : 'avaliações'})
               </span>
             </div>
 
-            <div className={css.metaRow}>
-              <div className={css.pill}><span>Formato</span><strong>{humanFormat}</strong></div>
-              <div className={css.pill}><span>Idioma</span><strong>{langText}</strong></div>
-              <div className={css.pill}><span>Tamanho</span><strong>{sizeText}</strong></div>
-              <div className={css.pill}><span>Interatividade</span><strong>{interacText}</strong></div>
-              <div className={css.pill}><span>Tempo médio</span><strong>{timeText}</strong></div>
+            <div className={css.metaGrid}>
+              <div className={css.metaCard}>
+                <span className={css.metaLabel}>Formato</span>
+                <strong className={css.metaValue}>{humanFormat}</strong>
+              </div>
+              <div className={css.metaCard}>
+                <span className={css.metaLabel}>Idioma</span>
+                <strong className={css.metaValue}>{langText}</strong>
+              </div>
+              <div className={css.metaCard}>
+                <span className={css.metaLabel}>Tamanho</span>
+                <strong className={css.metaValue}>{sizeText}</strong>
+              </div>
+              <div className={css.metaCard}>
+                <span className={css.metaLabel}>Interatividade</span>
+                <strong className={css.metaValue}>{interacText}</strong>
+              </div>
+              <div className={css.metaCard}>
+                <span className={css.metaLabel}>Tempo médio</span>
+                <strong className={css.metaValue}>{timeText}</strong>
+              </div>
             </div>
 
-            {desc && <p className={css.desc}>{desc}</p>}
-
-            {keywords.length > 0 && (
-              <div className={css.tags}>
-                {keywords.map((k, i) => (
-                  <Link key={i} to={`/search?q=${encodeURIComponent(k)}`} className={css.tag}>#{k}</Link>
-                ))}
+            {desc && (
+              <div className={css.descriptionCard}>
+                <h3 className={css.descriptionTitle}>Descrição</h3>
+                <p className={css.descriptionText}>{desc}</p>
               </div>
             )}
 
-            <div className={css.actions}>
-              <button className={home.cta} onClick={() => setAsk(true)}>Baixar</button>
-              <button className={home.cta} onClick={() => navigate('/search')}>Voltar</button>
+            {keywords.length > 0 && (
+              <div className={css.tagsSection}>
+                <h3 className={css.tagsTitle}>Tags</h3>
+                <div className={css.tagsList}>
+                  {keywords.map((k, i) => (
+                    <Link key={i} to={`/search?q=${encodeURIComponent(k)}`} className={css.tag}>
+                      #{k}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className={css.actionButtons}>
+              <button className={css.downloadBtn} onClick={() => setAsk(true)}>
+                📥 Baixar Objeto
+              </button>
             </div>
           </div>
         </div>
@@ -390,36 +447,43 @@ export default function ObjectDetails() {
         />
       </div>
 
-      <div className={css.tabs}>
-        <div className={css.tabList} role="tablist" aria-label="Informações avançadas">
-          {[
-            ['geral', 'Geral'],
-            ['ciclo', 'Ciclo de Vida'],
-            ['tecnico', 'Técnico'],
-            ['educacional', 'Educacional'],
-            ['direitos', 'Direitos'],
-            ['classificacao', 'Classificação'],
-          ].map(([key, label]) => (
-            <button
-              key={key}
-              role="tab"
-              aria-selected={tab === key}
-              className={`${css.tabBtn} ${tab === key ? css.tabBtnActive : ''}`}
-              onClick={() => setTab(key)}
-            >
-              {label}
-            </button>
-          ))}
+      {/* Advanced Information Tabs */}
+      <div className={css.advancedSection}>
+        <div className={css.tabsHeader}>
+          <h2 className={css.advancedTitle}>Informações Detalhadas</h2>
         </div>
-
-        <div className={css.tabPanel} role="tabpanel">
-          <div className={css.kvGrid}>
-            {Object.entries(adv[tab]).map(([k, v]) => (
-              <div key={k} className={css.kvItem}>
-                <div className={css.k}>{k}</div>
-                <div className={css.v}>{String(v)}</div>
-              </div>
+        
+        <div className={css.tabsContainer}>
+          <div className={css.tabsList} role="tablist" aria-label="Informações avançadas">
+            {[
+              ['geral', 'Geral'],
+              ['ciclo', 'Ciclo de Vida'],
+              ['tecnico', 'Técnico'],
+              ['educacional', 'Educacional'],
+              ['direitos', 'Direitos'],
+              ['classificacao', 'Classificação'],
+            ].map(([key, label]) => (
+              <button
+                key={key}
+                role="tab"
+                aria-selected={tab === key}
+                className={`${css.tabButton} ${tab === key ? css.tabButtonActive : ''}`}
+                onClick={() => setTab(key)}
+              >
+                {label}
+              </button>
             ))}
+          </div>
+
+          <div className={css.tabContent} role="tabpanel">
+            <div className={css.detailsGrid}>
+              {Object.entries(adv[tab]).map(([k, v]) => (
+                <div key={k} className={css.detailItem}>
+                  <dt className={css.detailLabel}>{k}</dt>
+                  <dd className={css.detailValue}>{String(v)}</dd>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
