@@ -7,7 +7,7 @@ const LOMSchema = new Schema({
     title:        { type: String, trim: true },
     description:  { type: String, trim: true },
     keyword:      [String],
-    language:     { type: String, default: 'pt-BR' },
+    language:     { type: String, default: 'portuguese' },
   },
   lifecycle: {
     version:      { type: String },

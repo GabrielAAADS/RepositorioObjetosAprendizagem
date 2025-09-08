@@ -142,6 +142,8 @@
   background: linear-gradient(135deg, #5b4ae6 0%, #7c5cf5 100%);
   aspect-ratio: 4/3;
   border: 1px solid #d1d5db;
+  height: 100%;
+  width: auto; 
 }
 
 .imageFrame img {

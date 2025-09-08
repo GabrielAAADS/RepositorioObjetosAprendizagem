@@ -51,7 +51,7 @@ function ConfirmModal({ text, onCancel, onConfirm }) {
 }
 
 const LANG_PT = {
-  'pt': 'Português', 'pt-br': 'Português (Brasil)', 'portuguese': 'Português',
+  'pt': 'Português', 'portuguese': 'Português (Brasil)', 'portuguese': 'Português',
   'en': 'Inglês', 'english': 'Inglês',
   'es': 'Espanhol', 'spanish': 'Espanhol',
   'fr': 'Francês', 'french': 'Francês',
