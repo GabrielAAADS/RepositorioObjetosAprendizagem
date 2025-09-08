@@ -47,7 +47,8 @@ export default function CreateObject() {
 
   const MAX_FILE_MB = 100;
   const ALLOWED_EXT = ['.pptx', '.pptm', '.ppt'];
-  const LANGS = ['pt-BR', 'pt-PT', 'en', 'es', 'fr'];
+  const LANGS = ['portuguese', 'portuguese', 'english', 'spanish', 'french'];
+
 
   const MIME_BY_EXT = {
     '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
@@ -100,7 +101,7 @@ export default function CreateObject() {
   }, [advanced]);
 
   const [lom, setLom] = useState({
-    general: { keyword: [], language: 'pt-BR' },
+    general: { keyword: [], language: 'portuguese' },
     lifecycle: { versionNum: 1, status: '', contributeRole: 'author', contributeEntity: 'Equipe ROVA', contributeDate: '' },
     technical: { format: '', size: '', location: '' },
     educational: {
@@ -112,7 +113,7 @@ export default function CreateObject() {
       difficulty: '',
       typicalLearningTimeMins: 15,
       description: '',
-      language: 'pt-BR',
+      language: 'portuguese',
     },
     rights: { cost: 'no', copyrightAndOtherRestrictions: 'CC-BY-NC', description: '' },
     classification: { purpose: '', description: '', keyword: [] },
@@ -234,7 +235,7 @@ export default function CreateObject() {
         title: form.title,
         description: form.description,
         keyword: lom.general.keyword,
-        language: lom.general.language || 'pt-BR',
+        language: lom.general.language || 'portuguese',
       },
     };
 
@@ -510,7 +511,7 @@ export default function CreateObject() {
                       />
                     </div>
                     <div className={css.fieldHalf}>
-                      <InfoLabel label="Idioma" info="Código IETF (ex.: pt-BR)" />
+                      <InfoLabel label="Idioma" info="Código IETF (ex.: portuguese)" />
                       <select
                         value={lom.general.language}
                         onChange={onLom('general', 'language')}
