@@ -195,7 +195,7 @@ export default function ObjectRatings() {
                 </div>
                 <div className={css.ratingMeta}>
                   {myCurrent.version && (
-                    <span className={css.versionTag}>v{myCurrent.version}</span>
+                    <span className={css.versionTag}>{myCurrent.version}</span>
                   )}
                   <span className={css.dateText}>
                     {new Date(myCurrent.created_at).toLocaleDateString('pt-BR')}
@@ -233,9 +233,9 @@ export default function ObjectRatings() {
               </div>
 
               <div className={css.formSection}>
-                <label className={css.formLabel}>Versão (opcional)</label>
+                <label className={css.formLabel}>Título (opcional)</label>
                 <input
-                  placeholder="Ex: 1.0, 2.5, beta..."
+                  placeholder="Ex: Objeto incrível..."
                   value={myVersion}
                   onChange={(e) => setMyVersion(e.target.value)}
                   className={css.formInput}
@@ -291,7 +291,7 @@ export default function ObjectRatings() {
                           <StarRating value={r.stars} readOnly size={16} />
                           <div className={css.historyMeta}>
                             {r.version && (
-                              <span className={css.versionTag}>v{r.version}</span>
+                              <span className={css.versionTag}>{r.version}</span>
                             )}
                             <span className={css.dateText}>
                               {new Date(r.created_at).toLocaleDateString('pt-BR')}
@@ -341,7 +341,7 @@ export default function ObjectRatings() {
                           </div>
                           <div className={css.reviewMeta}>
                             {r.version && (
-                              <span className={css.versionTag}>v{r.version}</span>
+                              <span className={css.versionTag}>{r.version}</span>
                             )}
                             <span className={css.dateText}>
                               {new Date(r.created_at).toLocaleDateString('pt-BR')}

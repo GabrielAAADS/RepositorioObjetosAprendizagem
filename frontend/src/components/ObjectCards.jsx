@@ -4,16 +4,7 @@ import { ChevronRight } from 'lucide-react';
 import StarRating from './StarRating';
 import styles from './Home.module.css';
 
-const FALLBACK_SVG = (() => {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
-    <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#5b4ae6"/><stop offset="100%" stop-color="#7c5cf5"/>
-    </linearGradient></defs>
-    <rect width="800" height="500" fill="url(#g)"/>
-    <g fill="white" opacity="0.14"><circle cx="120" cy="120" r="80"/><circle cx="700" cy="420" r="60"/></g>
-  </svg>`;
-  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
-})();
+const FALLBACK_SVG = '/banner-card.png';
 
 export default function ObjectCard(props) {
   const o = props.object ?? props.obj ?? {};
